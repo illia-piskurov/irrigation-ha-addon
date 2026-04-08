@@ -1,5 +1,5 @@
 name: "Irrigation Manager"
-version: "0.1.4"
+version: "0.1.5"
 slug: "irrigation_manager"
 description: "Simple Home Assistant irrigation program manager with sequential zone control"
 arch:
@@ -8,7 +8,7 @@ arch:
 startup: application
 boot: auto
 panel_icon: mdi:sprinkler-variant
-panel_title: Irrigation Manager
+panel_title: Управление поливом
 panel_admin: true
 ingress: true
 ingress_port: 8000

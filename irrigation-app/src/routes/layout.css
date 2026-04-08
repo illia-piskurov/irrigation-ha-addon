@@ -270,6 +270,12 @@ textarea:focus {
     color: #62707a;
 }
 
+.program-runtime {
+    margin: 0.28rem 0 0;
+    font-size: 0.82rem;
+    color: #51626e;
+}
+
 .badge-row {
     display: flex;
     align-items: center;

@@ -17,6 +17,16 @@
 
     type Props = { data: PageData };
 
+    type ProgramRuntimeSummary = {
+        programId: string;
+        status: "idle" | "queued" | "running";
+        scheduledFor: string | null;
+        nextZoneIndex: number | null;
+        activeZoneId: string | null;
+        retryAt: string | null;
+        lastError: string | null;
+    };
+
     let { data }: Props = $props();
 
     let draft = $state<IrrigationAppState>(normalizeState(undefined));
@@ -33,6 +43,7 @@
         "Проверяем подключение к Home Assistant...",
     );
     let activeZoneAutocompleteId = $state("");
+    let runtimeByProgramId = $state<Record<string, ProgramRuntimeSummary>>({});
     const HOURS = Array.from({ length: 24 }, (_, value) =>
         value.toString().padStart(2, "0"),
     );
@@ -79,6 +90,15 @@
 
         haEntitiesLoaded = true;
         void loadHaEntities();
+        void loadRuntimeStatus();
+
+        const interval = setInterval(() => {
+            void loadRuntimeStatus();
+        }, 15_000);
+
+        return () => {
+            clearInterval(interval);
+        };
     });
 
     function markExpanded(programId: string) {
@@ -179,12 +199,20 @@
         const merged = new Map<string, string>();
 
         for (const entity of haEntities) {
+            if (!entity.entityId.startsWith("switch.")) {
+                continue;
+            }
+
             merged.set(entity.entityId, entity.label);
         }
 
         for (const program of draft.programs) {
             for (const zone of program.zones) {
                 if (!zone.entityId) {
+                    continue;
+                }
+
+                if (!zone.entityId.startsWith("switch.")) {
                     continue;
                 }
 
@@ -324,6 +352,49 @@
                 "Не удалось подключиться к Home Assistant по WebSocket";
         }
     }
+
+    async function loadRuntimeStatus() {
+        try {
+            const response = await fetch(`${base}/api/runtime`);
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+
+            const payload = (await response.json()) as {
+                items: ProgramRuntimeSummary[];
+            };
+
+            runtimeByProgramId = Object.fromEntries(
+                payload.items.map((item) => [item.programId, item]),
+            );
+        } catch (error) {
+            console.error("Runtime status fetch failed", error);
+        }
+    }
+
+    function getProgramRuntimeText(programId: string): string {
+        const runtime = runtimeByProgramId[programId];
+
+        if (!runtime || runtime.status === "idle") {
+            return "Статус: ожидание";
+        }
+
+        if (runtime.status === "running") {
+            const zonePart =
+                runtime.nextZoneIndex === null
+                    ? ""
+                    : ` · зона ${runtime.nextZoneIndex + 1}`;
+            const errorPart = runtime.lastError
+                ? ` · ошибка: ${runtime.lastError}`
+                : "";
+            return `Статус: выполняется${zonePart}${errorPart}`;
+        }
+
+        const retryPart = runtime.retryAt
+            ? ` · retry ${new Date(runtime.retryAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+            : "";
+        return `Статус: в очереди${retryPart}`;
+    }
 </script>
 
 <svelte:head>
@@ -375,6 +446,9 @@
                                     {program.startTime} · {formatProgramDays(
                                         program.days,
                                     )} · {program.zones.length} зон
+                                </p>
+                                <p class="program-runtime">
+                                    {getProgramRuntimeText(program.id)}
                                 </p>
                             </div>
                             <span class="caret"

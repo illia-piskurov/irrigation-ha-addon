@@ -16,7 +16,7 @@ interface HaEntityOption {
 
 const DEFAULT_WS_URL = 'ws://supervisor/core/websocket';
 const ALT_WS_URL = 'ws://supervisor/core/api/websocket';
-const SUPPORTED_DOMAINS = new Set(['switch', 'valve', 'input_boolean']);
+const SUPPORTED_DOMAINS = new Set(['switch']);
 
 export const GET: RequestHandler = async () => {
     try {
