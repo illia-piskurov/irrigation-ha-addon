@@ -199,6 +199,37 @@ textarea:focus {
     margin-inline: auto;
 }
 
+.ha-health {
+    border-radius: 0.95rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid rgba(83, 96, 101, 0.16);
+    background: rgba(255, 255, 255, 0.72);
+    color: #31424d;
+    font-size: 0.9rem;
+}
+
+.ha-health strong {
+    font-weight: 700;
+}
+
+.ha-health-ok {
+    border-color: rgba(73, 120, 80, 0.28);
+    background: rgba(73, 120, 80, 0.1);
+    color: #2f5a38;
+}
+
+.ha-health-error {
+    border-color: rgba(174, 70, 70, 0.3);
+    background: rgba(174, 70, 70, 0.1);
+    color: #7d2f2f;
+}
+
+.ha-health-checking {
+    border-color: rgba(92, 113, 129, 0.28);
+    background: rgba(92, 113, 129, 0.1);
+    color: #435563;
+}
+
 .program-card {
     border-radius: 1.4rem;
     overflow: hidden;

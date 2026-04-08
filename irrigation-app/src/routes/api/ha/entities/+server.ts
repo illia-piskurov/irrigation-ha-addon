@@ -1,6 +1,5 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 
-import { createSeedState } from '$lib/seed';
 import { humanizeIdentifier } from '$lib/shared';
 
 interface HaStateItem {
@@ -17,28 +16,22 @@ interface HaEntityOption {
 
 const DEFAULT_WS_URL = 'ws://supervisor/core/websocket';
 const ALT_WS_URL = 'ws://supervisor/core/api/websocket';
-const DEFAULT_STATES_URL = 'http://supervisor/core/api/states';
 const SUPPORTED_DOMAINS = new Set(['switch', 'valve', 'input_boolean']);
 
 export const GET: RequestHandler = async () => {
     try {
         const entities = await fetchEntitiesFromHomeAssistant();
-        return json({ entities, source: 'websocket' });
-    } catch (wsError) {
-        try {
-            const entities = await fetchEntitiesFromHomeAssistantHttp();
-            return json({ entities, source: 'homeassistant-api' });
-        } catch (httpError) {
-            const entities = createSeedEntityFallback();
-            return json({
-                entities,
-                source: 'seed-fallback',
-                errors: {
-                    websocket: stringifyError(wsError),
-                    homeassistantApi: stringifyError(httpError)
-                }
-            });
-        }
+        return json({ entities, source: 'websocket', connected: true });
+    } catch (error) {
+        return json(
+            {
+                entities: [],
+                source: 'websocket',
+                connected: false,
+                error: stringifyError(error)
+            },
+            { status: 503 }
+        );
     }
 };
 
@@ -129,30 +122,6 @@ function fetchEntitiesFromSingleWsEndpoint(wsUrl: string, accessToken: string): 
     });
 }
 
-async function fetchEntitiesFromHomeAssistantHttp(): Promise<HaEntityOption[]> {
-    const accessToken =
-        process.env.SUPERVISOR_TOKEN ??
-        process.env.HASSIO_TOKEN ??
-        process.env.HOME_ASSISTANT_TOKEN;
-    if (!accessToken) {
-        throw new Error('Home Assistant access token is not available');
-    }
-
-    const statesUrl = process.env.HOMEASSISTANT_STATES_URL ?? DEFAULT_STATES_URL;
-    const response = await fetch(statesUrl, {
-        headers: {
-            Authorization: `Bearer ${accessToken}`
-        }
-    });
-
-    if (!response.ok) {
-        throw new Error(`Home Assistant states API failed: ${response.status}`);
-    }
-
-    const states = (await response.json()) as HaStateItem[];
-    return mapStateItemsToEntities(states);
-}
-
 function mapStateItemsToEntities(states: HaStateItem[]): HaEntityOption[] {
     return states
         .filter((state) => {
@@ -174,25 +143,4 @@ function mapStateItemsToEntities(states: HaStateItem[]): HaEntityOption[] {
 
 function stringifyError(error: unknown): string {
     return error instanceof Error ? error.message : 'unknown error';
-}
-
-function createSeedEntityFallback(): HaEntityOption[] {
-    const seen = new Set<string>();
-    const entities: HaEntityOption[] = [];
-
-    for (const program of createSeedState().programs) {
-        for (const zone of program.zones) {
-            if (seen.has(zone.entityId)) {
-                continue;
-            }
-
-            seen.add(zone.entityId);
-            entities.push({
-                entityId: zone.entityId,
-                label: zone.label
-            });
-        }
-    }
-
-    return entities.sort((left, right) => left.entityId.localeCompare(right.entityId));
 }

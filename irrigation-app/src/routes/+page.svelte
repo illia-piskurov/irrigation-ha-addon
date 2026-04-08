@@ -25,6 +25,12 @@
     let haEntities = $state<Array<{ entityId: string; label: string }>>([]);
     let haEntitiesLoaded = $state(false);
     let haEntitiesSource = $state("loading");
+    let haConnectionStatus = $state<"checking" | "connected" | "error">(
+        "checking",
+    );
+    let haConnectionMessage = $state(
+        "Проверяем подключение к Home Assistant...",
+    );
     let activeZoneAutocompleteId = $state("");
     const HOURS = Array.from({ length: 24 }, (_, value) =>
         value.toString().padStart(2, "0"),
@@ -267,19 +273,33 @@
     async function loadHaEntities() {
         try {
             const response = await fetch("/api/ha/entities");
-            if (!response.ok) {
-                return;
-            }
-
             const payload = (await response.json()) as {
                 entities: Array<{ entityId: string; label: string }>;
                 source?: string;
+                connected?: boolean;
+                error?: string;
             };
+
+            if (!response.ok || payload.connected === false) {
+                haEntities = [];
+                haEntitiesSource = payload.source ?? "websocket";
+                haConnectionStatus = "error";
+                haConnectionMessage =
+                    payload.error ??
+                    "Не удалось подключиться к Home Assistant по WebSocket";
+                return;
+            }
+
             haEntities = payload.entities;
             haEntitiesSource = payload.source ?? "unknown";
+            haConnectionStatus = "connected";
+            haConnectionMessage = `Подключено к Home Assistant (${haEntities.length} сущностей)`;
         } catch {
-            haEntitiesSource = "seed-fallback";
-            // Keep the form usable even if HA entity lookup is unavailable.
+            haEntities = [];
+            haEntitiesSource = "websocket";
+            haConnectionStatus = "error";
+            haConnectionMessage =
+                "Не удалось подключиться к Home Assistant по WebSocket";
         }
     }
 </script>
@@ -295,6 +315,16 @@
 <div class="shell">
     <div class="layout">
         <main class="main-column">
+            <div
+                class="ha-health"
+                class:ha-health-ok={haConnectionStatus === "connected"}
+                class:ha-health-error={haConnectionStatus === "error"}
+                class:ha-health-checking={haConnectionStatus === "checking"}
+            >
+                <strong>Home Assistant:</strong>
+                {haConnectionMessage}
+            </div>
+
             {#if draft.programs.length === 0}
                 <section class="empty-state">
                     <h2>Пока нет программ</h2>
