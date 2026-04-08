@@ -27,6 +27,8 @@ let schedulerTimer: ReturnType<typeof setInterval> | null = null;
 let executorTimer: ReturnType<typeof setInterval> | null = null;
 let schedulerBusy = false;
 let executorBusy = false;
+const activeRunExecutions = new Set<string>();
+const activeProgramExecutions = new Set<string>();
 const activeZoneAbortControllers = new Map<string, AbortController>();
 const activeZoneMetaByRunId = new Map<
     string,
@@ -243,12 +245,32 @@ async function executorTick(): Promise<void> {
     executorBusy = true;
 
     try {
-        const run = await findNextRunnableRun();
-        if (!run) {
+        const [runs, runningProgramIds] = await Promise.all([
+            findRunnableRuns(),
+            findRunningProgramIds()
+        ]);
+
+        if (runs.length === 0) {
             return;
         }
 
-        await executeRun(run.id);
+        const busyProgramIds = new Set<string>([
+            ...runningProgramIds,
+            ...activeProgramExecutions
+        ]);
+
+        for (const run of runs) {
+            if (activeRunExecutions.has(run.id)) {
+                continue;
+            }
+
+            if (busyProgramIds.has(run.programId)) {
+                continue;
+            }
+
+            busyProgramIds.add(run.programId);
+            dispatchRunExecution(run.id, run.programId);
+        }
     } catch (error) {
         console.error('[Runtime] executorTick failed:', stringifyError(error));
     } finally {
@@ -256,7 +278,21 @@ async function executorTick(): Promise<void> {
     }
 }
 
-async function findNextRunnableRun(): Promise<ProgramRunRecord | null> {
+function dispatchRunExecution(runId: string, programId: string): void {
+    activeRunExecutions.add(runId);
+    activeProgramExecutions.add(programId);
+
+    void executeRun(runId)
+        .catch((error) => {
+            console.error('[Runtime] executeRun failed:', stringifyError(error));
+        })
+        .finally(() => {
+            activeRunExecutions.delete(runId);
+            activeProgramExecutions.delete(programId);
+        });
+}
+
+async function findRunnableRuns(): Promise<ProgramRunRecord[]> {
     const dataSource = await getAppDataSource();
     const runRepository = dataSource.getRepository(ProgramRunSchema);
     const nowIso = new Date().toISOString();
@@ -267,7 +303,19 @@ async function findNextRunnableRun(): Promise<ProgramRunRecord | null> {
         .andWhere('(run.retryAt IS NULL OR run.retryAt <= :nowIso)', { nowIso })
         .orderBy('run.scheduledFor', 'ASC')
         .addOrderBy('run.createdAt', 'ASC')
-        .getOne();
+        .getMany();
+}
+
+async function findRunningProgramIds(): Promise<Set<string>> {
+    const dataSource = await getAppDataSource();
+    const runRepository = dataSource.getRepository(ProgramRunSchema);
+
+    const runningRuns = await runRepository.find({
+        where: { status: 'running' },
+        select: { programId: true }
+    });
+
+    return new Set(runningRuns.map((run) => run.programId));
 }
 
 async function executeRun(runId: string): Promise<void> {
