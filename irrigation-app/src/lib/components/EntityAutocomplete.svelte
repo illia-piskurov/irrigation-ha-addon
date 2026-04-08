@@ -28,6 +28,28 @@
 
     let isOpen = $state(false);
     let blurTimer: ReturnType<typeof setTimeout> | undefined;
+    let inputElement = $state<HTMLInputElement | null>(null);
+    let dropdownStyle = $state("");
+
+    $effect(() => {
+        if (!isOpen) {
+            return;
+        }
+
+        updateDropdownPosition();
+
+        const handleViewportChange = () => {
+            updateDropdownPosition();
+        };
+
+        window.addEventListener("resize", handleViewportChange);
+        window.addEventListener("scroll", handleViewportChange, true);
+
+        return () => {
+            window.removeEventListener("resize", handleViewportChange);
+            window.removeEventListener("scroll", handleViewportChange, true);
+        };
+    });
 
     function openAutocomplete() {
         if (blurTimer) {
@@ -35,6 +57,7 @@
         }
 
         isOpen = true;
+        updateDropdownPosition();
     }
 
     function closeAutocompleteDeferred() {
@@ -67,25 +90,50 @@
     function getDisplayValue() {
         return value || humanizeIdentifier(entityId);
     }
+
+    function updateDropdownPosition() {
+        if (!inputElement) {
+            return;
+        }
+
+        const rect = inputElement.getBoundingClientRect();
+        const viewportPadding = 8;
+        const preferredWidth = Math.max(rect.width, 260);
+        const maxAllowedWidth = Math.max(
+            260,
+            window.innerWidth - viewportPadding * 2,
+        );
+        const width = Math.min(preferredWidth, maxAllowedWidth);
+        const left = Math.max(
+            viewportPadding,
+            Math.min(rect.left, window.innerWidth - width - viewportPadding),
+        );
+        const top = rect.bottom + 6;
+
+        dropdownStyle = `position: fixed; top: ${top}px; left: ${left}px; width: ${width}px;`;
+    }
 </script>
 
 <div class="entity-autocomplete">
     <small class="entity-source">Источник: {source}</small>
     <input
+        bind:this={inputElement}
         type="text"
         value={getDisplayValue()}
         {placeholder}
         onfocus={openAutocomplete}
         onblur={closeAutocompleteDeferred}
-        oninput={(event) =>
-            onValueChange((event.currentTarget as HTMLInputElement).value)}
+        oninput={(event) => {
+            onValueChange((event.currentTarget as HTMLInputElement).value);
+            updateDropdownPosition();
+        }}
     />
     <small class="entity-id-value">ID: {entityId || "не выбран"}</small>
 
     {#if isOpen}
         {@const suggestions = getSuggestions()}
         {#if suggestions.length > 0}
-            <div class="entity-suggestions">
+            <div class="entity-suggestions" style={dropdownStyle}>
                 {#each suggestions as suggestion}
                     <button
                         type="button"
