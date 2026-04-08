@@ -54,7 +54,7 @@
         }
 
         draft = structuredClone(data.state);
-        expandedProgramId = data.state.programs[0]?.id ?? "";
+        expandedProgramId = "";
         lastPersistedSignature = JSON.stringify(data.state);
     });
 
@@ -402,6 +402,12 @@
                 {haConnectionMessage}
             </div>
 
+            <div class="add-program-row">
+                <button class="primary" type="button" onclick={addProgram}
+                    >+ Добавить программу</button
+                >
+            </div>
+
             {#if draft.programs.length === 0}
                 <section class="empty-state">
                     <h2>Пока нет программ</h2>
@@ -409,9 +415,6 @@
                         Добавьте первую программу и настройте её расписание и
                         зоны.
                     </p>
-                    <button class="primary" type="button" onclick={addProgram}
-                        >Создать программу</button
-                    >
                 </section>
             {:else}
                 {#each draft.programs as program, index (program.id)}
@@ -443,12 +446,6 @@
                             updateZoneEntity(zone, value)}
                     />
                 {/each}
-
-                <div class="add-program-row">
-                    <button class="primary" type="button" onclick={addProgram}
-                        >+ Добавить программу</button
-                    >
-                </div>
             {/if}
         </main>
     </div>
