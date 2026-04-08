@@ -1,5 +1,5 @@
 name: "Управление поливом"
-version: "0.2.0"
+version: "0.2.1"
 slug: "irrigation_manager"
 description: "Simple Home Assistant irrigation program manager with sequential zone control"
 arch:
