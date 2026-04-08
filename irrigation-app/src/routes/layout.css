@@ -58,7 +58,6 @@ textarea {
 button {
     border: 0;
     cursor: pointer;
-    min-height: 44px;
     transition:
         transform 0.15s ease,
         box-shadow 0.15s ease,
@@ -98,8 +97,6 @@ textarea:focus {
     max-width: 1440px;
     margin: 0 auto;
     padding: 2rem clamp(1rem, 2vw, 1.5rem) 1.25rem;
-    padding-left: max(clamp(1rem, 2vw, 1.5rem), env(safe-area-inset-left));
-    padding-right: max(clamp(1rem, 2vw, 1.5rem), env(safe-area-inset-right));
 }
 
 .hero {
@@ -143,6 +140,7 @@ textarea:focus {
     flex-direction: column;
     align-items: flex-end;
     gap: 0.75rem;
+    min-width: 260px;
 }
 
 .summary-grid {
@@ -181,7 +179,7 @@ textarea:focus {
 }
 
 .summary-card strong {
-    font-size: clamp(1.2rem, 3vw, 1.5rem);
+    font-size: 1.5rem;
     font-weight: 800;
     letter-spacing: -0.03em;
 }
@@ -395,7 +393,7 @@ textarea:focus {
 }
 
 .time-input-group select {
-    min-width: max(4rem, 100%);
+    min-width: 5.25rem;
 }
 
 .time-separator {
@@ -412,15 +410,11 @@ textarea:focus {
 }
 
 .weekday-row button {
-    padding: 0.65rem 0.9rem;
+    padding: 0.62rem 0.8rem;
     border: 1px solid rgba(83, 96, 101, 0.14);
     background: rgba(255, 255, 255, 0.84);
     color: #31424d;
     font-weight: 700;
-    min-height: 44px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .weekday-row button.selected {
@@ -458,7 +452,7 @@ textarea:focus {
 
 .zone-main {
     display: grid;
-    grid-template-columns: minmax(0, 1.7fr) minmax(0, 0.5fr);
+    grid-template-columns: minmax(0, 1.7fr) minmax(140px, 0.5fr);
     gap: 0.75rem;
 }
 
@@ -486,10 +480,8 @@ textarea:focus {
     top: calc(100% + 0.3rem);
     left: 0;
     right: 0;
-    max-width: min(400px, calc(100vw - 1.5rem));
     max-height: 240px;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: auto;
     border: 1px solid rgba(83, 96, 101, 0.18);
     border-radius: 0.85rem;
     background: #fff;
@@ -536,13 +528,9 @@ textarea:focus {
 .zone-actions button,
 .program-toolbar button,
 .hero-actions .primary {
-    padding: 0.8rem 1.2rem;
+    padding: 0.78rem 1rem;
     font-weight: 700;
     box-shadow: 0 8px 18px rgba(35, 49, 62, 0.08);
-    min-height: 44px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .primary {
@@ -773,123 +761,5 @@ textarea:focus {
     .zone-actions>*,
     .zone-picker>* {
         flex: 1 1 0;
-    }
-}
-
-@media (max-width: 480px) {
-    .shell {
-        padding: clamp(1rem, 3vw, 1.5rem) 0.55rem 1rem;
-    }
-
-    .hero {
-        padding: 1rem 0.9rem;
-        gap: 1rem;
-    }
-
-    .hero h1 {
-        font-size: clamp(1.5rem, 5vw, 2rem);
-    }
-
-    .hero-actions {
-        width: 100%;
-        align-items: stretch;
-        gap: 0.6rem;
-    }
-
-    .hero-actions button,
-    .hero-actions .primary {
-        width: 100%;
-        padding: 0.6rem 0.8rem;
-    }
-
-    .summary-card {
-        padding: 0.85rem 0.95rem;
-    }
-
-    .summary-card strong {
-        font-size: clamp(1rem, 2.5vw, 1.3rem);
-    }
-
-    .program-header h2,
-    .side-card h2,
-    .zone-list-header h3,
-    .empty-state h2 {
-        font-size: clamp(1rem, 3vw, 1.15rem);
-    }
-
-    .program-index {
-        font-size: 0.68rem;
-    }
-
-    .form-grid {
-        gap: 0.65rem;
-    }
-
-    .weekday-row {
-        gap: 0.4rem;
-        margin-bottom: 0.95rem;
-    }
-
-    .weekday-row button {
-        padding: 0.6rem 0.7rem;
-        font-size: 0.9rem;
-    }
-
-    .ghost,
-    .secondary,
-    .primary,
-    .danger,
-    .zone-actions button,
-    .program-toolbar button,
-    .hero-actions .primary {
-        padding: 0.6rem 0.95rem;
-        font-size: 0.95rem;
-    }
-
-    .zone-list {
-        gap: 0.75rem;
-    }
-
-    .zone-row {
-        padding: 0.85rem;
-        gap: 0.65rem;
-    }
-
-    .zone-main {
-        gap: 0.6rem;
-    }
-
-    .time-input-group select {
-        min-width: 3rem;
-        font-size: 0.95rem;
-    }
-
-    .entity-suggestions {
-        max-width: min(300px, calc(100vw - 1.2rem));
-        max-height: 50vh;
-        font-size: 0.9rem;
-    }
-
-    .entity-suggestion {
-        padding: 0.5rem 0.55rem;
-    }
-
-    .program-body {
-        padding: 0.95rem 1rem 1.1rem;
-    }
-
-    .empty-state {
-        padding: 1.2rem 1.3rem;
-    }
-
-    .empty-state p {
-        max-width: 45ch;
-    }
-
-    input,
-    select,
-    textarea {
-        padding: 0.7rem 0.85rem;
-        font-size: 1rem;
     }
 }
