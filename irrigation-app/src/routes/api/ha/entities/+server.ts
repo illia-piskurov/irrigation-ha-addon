@@ -23,6 +23,7 @@ export const GET: RequestHandler = async () => {
         const entities = await fetchEntitiesFromHomeAssistant();
         return json({ entities, source: 'websocket', connected: true });
     } catch (error) {
+        console.error('[HA WS] Failed to fetch entities:', stringifyError(error));
         return json(
             {
                 entities: [],
@@ -44,15 +45,20 @@ async function fetchEntitiesFromHomeAssistant(): Promise<HaEntityOption[]> {
         throw new Error('Home Assistant access token is not available');
     }
 
-    const wsUrls = process.env.HOMEASSISTANT_WS_URL
-        ? [process.env.HOMEASSISTANT_WS_URL]
-        : [DEFAULT_WS_URL, ALT_WS_URL];
+    const wsUrls = buildWsUrls();
+    console.info(
+        `[HA WS] Trying ${wsUrls.length} endpoint(s): ${wsUrls.join(', ')}`
+    );
 
     let lastError: unknown;
     for (const wsUrl of wsUrls) {
         try {
+            console.info(`[HA WS] Connecting: ${wsUrl}`);
             return await fetchEntitiesFromSingleWsEndpoint(wsUrl, accessToken);
         } catch (error) {
+            console.warn(
+                `[HA WS] Endpoint failed (${wsUrl}): ${stringifyError(error)}`
+            );
             lastError = error;
         }
     }
@@ -87,6 +93,7 @@ function fetchEntitiesFromSingleWsEndpoint(wsUrl: string, accessToken: string): 
             };
 
             if (message.type === 'auth_required') {
+                console.info(`[HA WS] auth_required: ${wsUrl}`);
                 socket.send(
                     JSON.stringify({
                         type: 'auth',
@@ -104,6 +111,7 @@ function fetchEntitiesFromSingleWsEndpoint(wsUrl: string, accessToken: string): 
             }
 
             if (message.type === 'auth_ok') {
+                console.info(`[HA WS] auth_ok: ${wsUrl}`);
                 socket.send(
                     JSON.stringify({
                         id: requestId,
@@ -116,10 +124,26 @@ function fetchEntitiesFromSingleWsEndpoint(wsUrl: string, accessToken: string): 
             if (message.id === requestId && message.type === 'result') {
                 cleanup();
                 socket.close();
-                resolve(mapStateItemsToEntities(message.result ?? []));
+                const entities = mapStateItemsToEntities(message.result ?? []);
+                console.info(
+                    `[HA WS] get_states success: ${wsUrl}, entities=${entities.length}`
+                );
+                resolve(entities);
             }
         });
     });
+}
+
+function buildWsUrls(): string[] {
+    const urls: string[] = [];
+
+    if (process.env.HOMEASSISTANT_WS_URL) {
+        urls.push(process.env.HOMEASSISTANT_WS_URL);
+    }
+
+    urls.push(DEFAULT_WS_URL, ALT_WS_URL);
+
+    return Array.from(new Set(urls));
 }
 
 function mapStateItemsToEntities(states: HaStateItem[]): HaEntityOption[] {
