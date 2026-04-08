@@ -30,24 +30,25 @@
     let blurTimer: ReturnType<typeof setTimeout> | undefined;
     let inputElement = $state<HTMLInputElement | null>(null);
     let dropdownStyle = $state("");
+    let animationFrameId: number | null = null;
 
     $effect(() => {
         if (!isOpen) {
             return;
         }
 
-        updateDropdownPosition();
-
-        const handleViewportChange = () => {
+        const trackPosition = () => {
             updateDropdownPosition();
+            animationFrameId = window.requestAnimationFrame(trackPosition);
         };
 
-        window.addEventListener("resize", handleViewportChange);
-        window.addEventListener("scroll", handleViewportChange, true);
+        trackPosition();
 
         return () => {
-            window.removeEventListener("resize", handleViewportChange);
-            window.removeEventListener("scroll", handleViewportChange, true);
+            if (animationFrameId !== null) {
+                window.cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
         };
     });
 
@@ -108,9 +109,23 @@
             viewportPadding,
             Math.min(rect.left, window.innerWidth - width - viewportPadding),
         );
-        const top = rect.bottom + 6;
+        const availableBelow =
+            window.innerHeight - rect.bottom - viewportPadding;
+        const availableAbove = rect.top - viewportPadding;
+        const shouldOpenUp =
+            availableBelow < 170 && availableAbove > availableBelow;
+        const maxHeight = Math.max(
+            140,
+            Math.min(
+                280,
+                shouldOpenUp ? availableAbove - 6 : availableBelow - 6,
+            ),
+        );
+        const top = shouldOpenUp
+            ? Math.max(viewportPadding, rect.top - maxHeight - 6)
+            : rect.bottom + 6;
 
-        dropdownStyle = `position: fixed; top: ${top}px; left: ${left}px; width: ${width}px;`;
+        dropdownStyle = `position: fixed; top: ${top}px; left: ${left}px; width: ${width}px; max-height: ${maxHeight}px;`;
     }
 </script>
 
