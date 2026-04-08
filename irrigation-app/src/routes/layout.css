@@ -234,7 +234,7 @@ textarea:focus {
 
 .program-card {
     border-radius: 1.4rem;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .program-header {
@@ -846,7 +846,7 @@ textarea:focus {
 .dialog-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 50;
+    z-index: 1000;
     display: grid;
     place-items: center;
     padding: 1rem;
