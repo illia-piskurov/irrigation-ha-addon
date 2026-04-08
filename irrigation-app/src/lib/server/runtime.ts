@@ -1,4 +1,4 @@
-import { WEEKDAYS, type Weekday } from '../shared';
+import { WEEKDAYS, createId, type Weekday } from '../shared';
 import { getAppDataSource } from './db/datasource';
 import {
     ProgramEventSchema,
@@ -207,7 +207,7 @@ async function enqueueProgramRun(programId: string, scheduledFor: string): Promi
     const runRepository = dataSource.getRepository(ProgramRunSchema);
 
     const run: ProgramRunRecord = {
-        id: crypto.randomUUID(),
+        id: createId(),
         programId,
         scheduledFor,
         status: 'pending',
@@ -599,7 +599,7 @@ async function writeProgramEvent(
     const eventRepository = dataSource.getRepository(ProgramEventSchema);
 
     const row: ProgramEventRecord = {
-        id: crypto.randomUUID(),
+        id: createId(),
         programId: options.programId,
         level: options.level,
         message,

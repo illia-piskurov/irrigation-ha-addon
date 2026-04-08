@@ -12,7 +12,7 @@ import {
     type ZoneRecord
 } from './db/entities';
 import { ensureRuntimeWorkersStarted } from './runtime';
-import { DEFAULT_DURATION_MINUTES, normalizeState, type IrrigationAppState } from '../shared';
+import { DEFAULT_DURATION_MINUTES, createId, normalizeState, type IrrigationAppState } from '../shared';
 
 type ProgramEventLevel = 'info' | 'warning' | 'error';
 
@@ -152,7 +152,7 @@ export async function logProgramEvent(
     const eventRepository = dataSource.getRepository(ProgramEventSchema);
 
     const eventRow: ProgramEventRecord = {
-        id: crypto.randomUUID(),
+        id: createId(),
         programId: options.programId ?? null,
         level: options.level ?? 'info',
         message,

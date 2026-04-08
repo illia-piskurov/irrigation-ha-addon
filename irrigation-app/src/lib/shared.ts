@@ -69,9 +69,19 @@ export function clampDurationMinutes(value: number, fallback = DEFAULT_DURATION_
     return Math.min(240, Math.max(1, Math.round(value)));
 }
 
+export function createId(): string {
+    const randomUuid = globalThis.crypto?.randomUUID;
+
+    if (typeof randomUuid === 'function') {
+        return randomUuid.call(globalThis.crypto);
+    }
+
+    return `id_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export function createEmptyProgram(): IrrigationProgram {
     return {
-        id: crypto.randomUUID(),
+        id: createId(),
         name: 'Новая программа',
         enabled: true,
         startTime: '06:00',
@@ -82,7 +92,7 @@ export function createEmptyProgram(): IrrigationProgram {
 
 export function createZoneFromCatalog(entry: ZoneCatalogEntry, durationMinutes = DEFAULT_DURATION_MINUTES): IrrigationZone {
     return {
-        id: crypto.randomUUID(),
+        id: createId(),
         entityId: entry.entityId,
         label: entry.label,
         durationMinutes: clampDurationMinutes(durationMinutes),
@@ -92,7 +102,7 @@ export function createZoneFromCatalog(entry: ZoneCatalogEntry, durationMinutes =
 
 export function createEmptyZone(durationMinutes = DEFAULT_DURATION_MINUTES): IrrigationZone {
     return {
-        id: crypto.randomUUID(),
+        id: createId(),
         entityId: '',
         label: 'Зона',
         durationMinutes: clampDurationMinutes(durationMinutes),
@@ -144,7 +154,7 @@ export function normalizeState(candidate: unknown): IrrigationAppState {
 
 function normalizeProgram(program: Partial<IrrigationProgram>): IrrigationProgram {
     return {
-        id: typeof program.id === 'string' && program.id ? program.id : crypto.randomUUID(),
+        id: typeof program.id === 'string' && program.id ? program.id : createId(),
         name: typeof program.name === 'string' && program.name.trim() ? program.name.trim() : 'Новая программа',
         enabled: typeof program.enabled === 'boolean' ? program.enabled : true,
         startTime: typeof program.startTime === 'string' && /^\d{2}:\d{2}$/.test(program.startTime) ? program.startTime : '06:00',
@@ -155,7 +165,7 @@ function normalizeProgram(program: Partial<IrrigationProgram>): IrrigationProgra
 
 function normalizeZone(zone: Partial<IrrigationZone>): IrrigationZone {
     return {
-        id: typeof zone.id === 'string' && zone.id ? zone.id : crypto.randomUUID(),
+        id: typeof zone.id === 'string' && zone.id ? zone.id : createId(),
         entityId: typeof zone.entityId === 'string' ? zone.entityId.trim() : '',
         label: typeof zone.label === 'string' && zone.label.trim() ? zone.label.trim() : 'Зона',
         durationMinutes: clampDurationMinutes(
