@@ -58,6 +58,7 @@ textarea {
 button {
     border: 0;
     cursor: pointer;
+    min-height: 44px;
     transition:
         transform 0.15s ease,
         box-shadow 0.15s ease,
@@ -97,6 +98,8 @@ textarea:focus {
     max-width: 1440px;
     margin: 0 auto;
     padding: 2rem clamp(1rem, 2vw, 1.5rem) 1.25rem;
+    padding-left: max(clamp(1rem, 2vw, 1.5rem), env(safe-area-inset-left));
+    padding-right: max(clamp(1rem, 2vw, 1.5rem), env(safe-area-inset-right));
 }
 
 .hero {
@@ -140,7 +143,6 @@ textarea:focus {
     flex-direction: column;
     align-items: flex-end;
     gap: 0.75rem;
-    min-width: 260px;
 }
 
 .summary-grid {
@@ -393,7 +395,7 @@ textarea:focus {
 }
 
 .time-input-group select {
-    min-width: 5.25rem;
+    min-width: 4.25rem;
 }
 
 .time-separator {
@@ -410,11 +412,14 @@ textarea:focus {
 }
 
 .weekday-row button {
-    padding: 0.62rem 0.8rem;
+    padding: 0.65rem 0.9rem;
     border: 1px solid rgba(83, 96, 101, 0.14);
     background: rgba(255, 255, 255, 0.84);
     color: #31424d;
     font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .weekday-row button.selected {
@@ -480,8 +485,10 @@ textarea:focus {
     top: calc(100% + 0.3rem);
     left: 0;
     right: 0;
+    max-width: min(400px, calc(100vw - 1.5rem));
     max-height: 240px;
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
     border: 1px solid rgba(83, 96, 101, 0.18);
     border-radius: 0.85rem;
     background: #fff;
@@ -528,7 +535,7 @@ textarea:focus {
 .zone-actions button,
 .program-toolbar button,
 .hero-actions .primary {
-    padding: 0.78rem 1rem;
+    padding: 0.8rem 1.15rem;
     font-weight: 700;
     box-shadow: 0 8px 18px rgba(35, 49, 62, 0.08);
 }
@@ -761,5 +768,135 @@ textarea:focus {
     .zone-actions>*,
     .zone-picker>* {
         flex: 1 1 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .shell {
+        padding: 0.85rem 0.55rem 1rem;
+    }
+
+    .hero,
+    .program-header,
+    .program-body,
+    .summary-card,
+    .side-card,
+    .empty-state {
+        padding-left: 0.9rem;
+        padding-right: 0.9rem;
+    }
+
+    .hero {
+        gap: 1rem;
+    }
+
+    .hero h1 {
+        font-size: clamp(1.55rem, 6vw, 2.1rem);
+    }
+
+    .hero-actions {
+        width: 100%;
+        align-items: stretch;
+        gap: 0.6rem;
+    }
+
+    .hero-actions .primary,
+    .hero-actions button {
+        width: 100%;
+    }
+
+    .summary-grid {
+        gap: 0.65rem;
+    }
+
+    .summary-card {
+        padding-top: 0.9rem;
+        padding-bottom: 0.9rem;
+    }
+
+    .summary-card strong {
+        font-size: clamp(1.1rem, 5vw, 1.35rem);
+    }
+
+    .program-header h2,
+    .side-card h2,
+    .zone-list-header h3,
+    .empty-state h2 {
+        font-size: 1.02rem;
+    }
+
+    .program-index {
+        font-size: 0.68rem;
+    }
+
+    .program-meta,
+    .program-runtime,
+    .zone-list-header p,
+    .side-card p,
+    .empty-state p {
+        font-size: 0.88rem;
+    }
+
+    .program-toolbar,
+    .zone-picker,
+    .zone-actions {
+        gap: 0.6rem;
+    }
+
+    .toolbar-actions,
+    .zone-actions {
+        width: 100%;
+    }
+
+    .zone-main {
+        gap: 0.6rem;
+    }
+
+    .form-grid,
+    .zone-row,
+    .zone-main {
+        gap: 0.65rem;
+    }
+
+    .time-input-group {
+        gap: 0.35rem;
+    }
+
+    .time-input-group select {
+        min-width: 4rem;
+        padding-left: 0.7rem;
+        padding-right: 0.7rem;
+    }
+
+    .weekday-row {
+        gap: 0.4rem;
+    }
+
+    .weekday-row button {
+        padding: 0.58rem 0.72rem;
+        font-size: 0.9rem;
+    }
+
+    .zone-row {
+        padding: 0.85rem;
+    }
+
+    .entity-suggestions {
+        max-width: min(300px, calc(100vw - 1rem));
+        max-height: 48vh;
+    }
+
+    .entity-suggestion {
+        padding: 0.5rem 0.55rem;
+    }
+
+    .ghost,
+    .secondary,
+    .primary,
+    .danger,
+    .zone-actions button,
+    .program-toolbar button,
+    .hero-actions .primary {
+        padding: 0.68rem 0.95rem;
     }
 }
