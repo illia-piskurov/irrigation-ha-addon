@@ -234,7 +234,7 @@ textarea:focus {
 
 .program-card {
     border-radius: 1.4rem;
-    overflow: visible;
+    overflow: hidden;
 }
 
 .program-header {
@@ -855,6 +855,20 @@ textarea:focus {
 }
 
 .history-dialog {
+    padding: 0;
+    margin: auto;
+    border: 0;
+    background: transparent;
+    width: min(760px, calc(100vw - 2rem));
+    max-width: calc(100vw - 2rem);
+}
+
+.history-dialog::backdrop {
+    background: rgba(16, 24, 30, 0.55);
+    backdrop-filter: blur(6px);
+}
+
+.history-dialog-shell {
     width: min(760px, 100%);
     max-height: min(86vh, 860px);
     display: grid;
@@ -1231,6 +1245,9 @@ textarea:focus {
 
     .history-dialog {
         width: 100%;
+    }
+
+    .history-dialog-shell {
         max-height: 94vh;
         border-radius: 1rem;
     }
