@@ -3,6 +3,7 @@
     import { base } from "$app/paths";
     import {
         DEFAULT_DURATION_MINUTES,
+        clampDurationMinutes,
         WEEKDAYS,
         WEEKDAY_LABELS,
         createEmptyProgram,
@@ -13,6 +14,7 @@
         type IrrigationProgram,
         type Weekday,
     } from "$lib";
+    import ProgramCard from "$lib/components/ProgramCard.svelte";
     import type { PageData } from "./$types";
 
     type Props = { data: PageData };
@@ -42,14 +44,7 @@
     let haConnectionMessage = $state(
         "Проверяем подключение к Home Assistant...",
     );
-    let activeZoneAutocompleteId = $state("");
     let runtimeByProgramId = $state<Record<string, ProgramRuntimeSummary>>({});
-    const HOURS = Array.from({ length: 24 }, (_, value) =>
-        value.toString().padStart(2, "0"),
-    );
-    const MINUTES = Array.from({ length: 60 }, (_, value) =>
-        value.toString().padStart(2, "0"),
-    );
 
     $effect(() => {
         if (lastPersistedSignature !== "") {
@@ -159,10 +154,6 @@
               );
     }
 
-    function updateProgramName(program: IrrigationProgram, value: string) {
-        program.name = value;
-    }
-
     function updateZoneEntity(
         zone: { entityId: string; label: string },
         value: string,
@@ -230,41 +221,6 @@
             .sort((left, right) => left.entityId.localeCompare(right.entityId));
     }
 
-    function getEntitySuggestions(zone: { entityId: string; label: string }) {
-        const query = (zone.label || zone.entityId).trim().toLowerCase();
-        const options = collectEntityOptions();
-
-        if (!query) {
-            return options.slice(0, 8);
-        }
-
-        return options
-            .filter(
-                (entity) =>
-                    entity.entityId.toLowerCase().includes(query) ||
-                    entity.label.toLowerCase().includes(query),
-            )
-            .slice(0, 12);
-    }
-
-    function selectEntitySuggestion(
-        zone: { entityId: string; label: string },
-        entityId: string,
-    ) {
-        updateZoneEntity(zone, entityId);
-        activeZoneAutocompleteId = "";
-    }
-
-    function getZoneDisplayValue(zone: { entityId: string; label: string }) {
-        return zone.label || humanizeIdentifier(zone.entityId);
-    }
-
-    function closeAutocompleteDeferred() {
-        setTimeout(() => {
-            activeZoneAutocompleteId = "";
-        }, 120);
-    }
-
     function updateStartTime(
         program: IrrigationProgram,
         part: "hour" | "minute",
@@ -274,6 +230,10 @@
         const nextHour = part === "hour" ? value : hour;
         const nextMinute = part === "minute" ? value : minute;
         program.startTime = `${nextHour}:${nextMinute}`;
+    }
+
+    function updateDefaultDurationMinutes(value: number) {
+        draft.settings.defaultDurationMinutes = clampDurationMinutes(value);
     }
 
     function getStartHour(program: IrrigationProgram): string {
@@ -431,288 +391,31 @@
                 </section>
             {:else}
                 {#each draft.programs as program, index (program.id)}
-                    <section class="program-card">
-                        <button
-                            class="program-header"
-                            type="button"
-                            onclick={() => markExpanded(program.id)}
-                        >
-                            <div>
-                                <p class="program-index">
-                                    Программа {index + 1}
-                                </p>
-                                <h2>{program.name}</h2>
-                                <p class="program-meta">
-                                    {program.startTime} · {formatProgramDays(
-                                        program.days,
-                                    )} · {program.zones.length} зон
-                                </p>
-                                <p class="program-runtime">
-                                    {getProgramRuntimeText(program.id)}
-                                </p>
-                            </div>
-                            <span class="caret"
-                                >{expandedProgramId === program.id
-                                    ? "▴"
-                                    : "▾"}</span
-                            >
-                        </button>
-
-                        {#if expandedProgramId === program.id}
-                            <div class="program-body">
-                                <div class="program-toolbar">
-                                    <label class="toggle">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={program.enabled}
-                                        />
-                                        <span>Включена</span>
-                                    </label>
-                                    <div class="toolbar-actions">
-                                        <button
-                                            type="button"
-                                            class="danger"
-                                            onclick={() =>
-                                                removeProgram(program.id)}
-                                            >Удалить</button
-                                        >
-                                    </div>
-                                </div>
-
-                                <div class="form-grid">
-                                    <label>
-                                        <span>Название программы</span>
-                                        <input
-                                            type="text"
-                                            bind:value={program.name}
-                                            oninput={(event) =>
-                                                updateProgramName(
-                                                    program,
-                                                    (
-                                                        event.currentTarget as HTMLInputElement
-                                                    ).value,
-                                                )}
-                                        />
-                                    </label>
-                                    <label>
-                                        <span>Время старта</span>
-                                        <div class="time-input-group">
-                                            <select
-                                                value={getStartHour(program)}
-                                                onchange={(event) =>
-                                                    updateStartTime(
-                                                        program,
-                                                        "hour",
-                                                        (
-                                                            event.currentTarget as HTMLSelectElement
-                                                        ).value,
-                                                    )}
-                                            >
-                                                {#each HOURS as option}
-                                                    <option value={option}
-                                                        >{option}</option
-                                                    >
-                                                {/each}
-                                            </select>
-                                            <span class="time-separator">:</span
-                                            >
-                                            <select
-                                                value={getStartMinute(program)}
-                                                onchange={(event) =>
-                                                    updateStartTime(
-                                                        program,
-                                                        "minute",
-                                                        (
-                                                            event.currentTarget as HTMLSelectElement
-                                                        ).value,
-                                                    )}
-                                            >
-                                                {#each MINUTES as option}
-                                                    <option value={option}
-                                                        >{option}</option
-                                                    >
-                                                {/each}
-                                            </select>
-                                        </div>
-                                    </label>
-                                    <label>
-                                        <span>Длительность по умолчанию</span>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            max="240"
-                                            bind:value={
-                                                draft.settings
-                                                    .defaultDurationMinutes
-                                            }
-                                        />
-                                    </label>
-                                </div>
-
-                                <div class="weekday-row">
-                                    {#each WEEKDAYS as day}
-                                        <button
-                                            type="button"
-                                            class:selected={program.days.includes(
-                                                day,
-                                            )}
-                                            onclick={() =>
-                                                toggleDay(program, day)}
-                                        >
-                                            {WEEKDAY_LABELS[day]}
-                                        </button>
-                                    {/each}
-                                </div>
-
-                                <div class="zone-list">
-                                    <div class="zone-list-header">
-                                        <h3>Зоны</h3>
-                                        <p>
-                                            Последовательный запуск, по одной
-                                            зоне за раз.
-                                        </p>
-                                    </div>
-
-                                    {#if program.zones.length === 0}
-                                        <div class="empty-zones">
-                                            Нет зон. Добавьте первую ниже.
-                                        </div>
-                                    {/if}
-
-                                    {#each program.zones as zone, zoneIndex (zone.id)}
-                                        <div class="zone-row">
-                                            <div class="zone-main">
-                                                <label>
-                                                    <span
-                                                        >Сущность HA (entity_id)</span
-                                                    >
-                                                    <small class="entity-source"
-                                                        >Источник: {haEntitiesSource}</small
-                                                    >
-                                                    <div
-                                                        class="entity-autocomplete"
-                                                    >
-                                                        <input
-                                                            type="text"
-                                                            value={getZoneDisplayValue(
-                                                                zone,
-                                                            )}
-                                                            placeholder="Начните вводить имя или entity_id"
-                                                            onfocus={() =>
-                                                                (activeZoneAutocompleteId =
-                                                                    zone.id)}
-                                                            onblur={closeAutocompleteDeferred}
-                                                            oninput={(event) =>
-                                                                updateZoneEntity(
-                                                                    zone,
-                                                                    (
-                                                                        event.currentTarget as HTMLInputElement
-                                                                    ).value,
-                                                                )}
-                                                        />
-                                                        <small
-                                                            class="entity-id-value"
-                                                            >ID: {zone.entityId ||
-                                                                "не выбран"}</small
-                                                        >
-
-                                                        {#if activeZoneAutocompleteId === zone.id}
-                                                            {@const suggestions =
-                                                                getEntitySuggestions(
-                                                                    zone,
-                                                                )}
-                                                            {#if suggestions.length > 0}
-                                                                <div
-                                                                    class="entity-suggestions"
-                                                                >
-                                                                    {#each suggestions as suggestion}
-                                                                        <button
-                                                                            type="button"
-                                                                            class="entity-suggestion"
-                                                                            onmousedown={() =>
-                                                                                selectEntitySuggestion(
-                                                                                    zone,
-                                                                                    suggestion.entityId,
-                                                                                )}
-                                                                        >
-                                                                            <span
-                                                                                >{suggestion.label}</span
-                                                                            >
-                                                                            <small
-                                                                                >{suggestion.entityId}</small
-                                                                            >
-                                                                        </button>
-                                                                    {/each}
-                                                                </div>
-                                                            {/if}
-                                                        {/if}
-                                                    </div>
-                                                </label>
-                                                <label>
-                                                    <span>Минуты</span>
-                                                    <input
-                                                        type="number"
-                                                        min="1"
-                                                        max="240"
-                                                        bind:value={
-                                                            zone.durationMinutes
-                                                        }
-                                                    />
-                                                </label>
-                                            </div>
-                                            <div class="zone-actions">
-                                                <label class="toggle">
-                                                    <input
-                                                        type="checkbox"
-                                                        bind:checked={
-                                                            zone.enabled
-                                                        }
-                                                    />
-                                                    <span>Вкл</span>
-                                                </label>
-                                                <button
-                                                    type="button"
-                                                    class="ghost"
-                                                    onclick={() =>
-                                                        moveZone(
-                                                            program,
-                                                            zoneIndex,
-                                                            -1,
-                                                        )}>↑</button
-                                                >
-                                                <button
-                                                    type="button"
-                                                    class="ghost"
-                                                    onclick={() =>
-                                                        moveZone(
-                                                            program,
-                                                            zoneIndex,
-                                                            1,
-                                                        )}>↓</button
-                                                >
-                                                <button
-                                                    type="button"
-                                                    class="danger"
-                                                    onclick={() =>
-                                                        removeZone(
-                                                            program,
-                                                            zone.id,
-                                                        )}>Удалить</button
-                                                >
-                                            </div>
-                                        </div>
-                                    {/each}
-
-                                    <button
-                                        type="button"
-                                        class="secondary"
-                                        onclick={() => addZone(program)}
-                                        >Добавить пустую зону</button
-                                    >
-                                </div>
-                            </div>
-                        {/if}
-                    </section>
+                    <ProgramCard
+                        {program}
+                        {index}
+                        expanded={expandedProgramId === program.id}
+                        runtimeText={getProgramRuntimeText(program.id)}
+                        entityOptions={collectEntityOptions()}
+                        {haEntitiesSource}
+                        defaultDurationMinutes={draft.settings
+                            .defaultDurationMinutes}
+                        {formatProgramDays}
+                        {getStartHour}
+                        {getStartMinute}
+                        onToggleExpanded={() => markExpanded(program.id)}
+                        onRemoveProgram={() => removeProgram(program.id)}
+                        onAddZone={() => addZone(program)}
+                        onRemoveZone={(zoneId) => removeZone(program, zoneId)}
+                        onMoveZone={(zoneIndex, direction) =>
+                            moveZone(program, zoneIndex, direction)}
+                        onToggleDay={(day) => toggleDay(program, day)}
+                        onUpdateStartTime={(part, value) =>
+                            updateStartTime(program, part, value)}
+                        onUpdateDefaultDurationMinutes={updateDefaultDurationMinutes}
+                        onUpdateZoneEntity={(zone, value) =>
+                            updateZoneEntity(zone, value)}
+                    />
                 {/each}
 
                 <div class="add-program-row">
