@@ -258,7 +258,7 @@ async function executeRun(runId: string): Promise<void> {
         });
 
         try {
-            await executeZone(zone.entityId, zone.durationMinutes);
+            await executeZone(run.programId, zone.id, zone.entityId, zone.durationMinutes);
 
             run.retryCount = 0;
             run.retryAt = null;
@@ -347,16 +347,63 @@ async function finishRun(run: ProgramRunRecord, status: ProgramRunStatus, errorM
     );
 }
 
-async function executeZone(entityId: string, durationMinutes: number): Promise<void> {
+async function executeZone(
+    programId: string,
+    zoneId: string,
+    entityId: string,
+    durationMinutes: number,
+): Promise<void> {
     let switchEnabled = false;
 
     try {
-        await turnSwitchOn(entityId);
+        const turnOnResult = await turnSwitchOn(entityId);
         switchEnabled = true;
+        await writeProgramEvent('Switch turned on', {
+            programId,
+            level: 'info',
+            payload: {
+                zoneId,
+                entityId,
+                state: turnOnResult.state
+            }
+        });
         await delay(durationMinutes * 60_000);
+    } catch (error) {
+        await writeProgramEvent('Switch turn on failed', {
+            programId,
+            level: 'error',
+            payload: {
+                zoneId,
+                entityId,
+                error: stringifyError(error)
+            }
+        });
+        throw error;
     } finally {
         if (switchEnabled) {
-            await turnSwitchOff(entityId);
+            try {
+                const turnOffResult = await turnSwitchOff(entityId);
+                await writeProgramEvent('Switch turned off', {
+                    programId,
+                    level: 'info',
+                    payload: {
+                        zoneId,
+                        entityId,
+                        state: turnOffResult.state
+                    }
+                });
+            } catch (error) {
+                await writeProgramEvent('Switch turn off failed', {
+                    programId,
+                    level: 'error',
+                    payload: {
+                        zoneId,
+                        entityId,
+                        error: stringifyError(error)
+                    }
+                });
+                throw error;
+            }
         }
     }
 }

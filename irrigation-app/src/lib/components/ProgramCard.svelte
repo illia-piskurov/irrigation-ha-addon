@@ -6,6 +6,7 @@
         type Weekday,
     } from "$lib";
     import EntityAutocomplete from "$lib/components/EntityAutocomplete.svelte";
+    import ProgramHistoryDialog from "./ProgramHistoryDialog.svelte";
 
     type EntityOption = {
         entityId: string;
@@ -82,6 +83,10 @@
                     <span>Включена</span>
                 </label>
                 <div class="toolbar-actions">
+                    <ProgramHistoryDialog
+                        programId={program.id}
+                        programName={program.name}
+                    />
                     <button
                         type="button"
                         class="danger"

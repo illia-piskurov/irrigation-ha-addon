@@ -706,6 +706,170 @@ textarea:focus {
     padding-top: 0.25rem;
 }
 
+.history-button {
+    white-space: nowrap;
+}
+
+.dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(16, 24, 30, 0.55);
+    backdrop-filter: blur(6px);
+}
+
+.history-dialog {
+    width: min(760px, 100%);
+    max-height: min(86vh, 860px);
+    display: grid;
+    grid-template-rows: auto 1fr;
+    overflow: hidden;
+    border-radius: 1.25rem;
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(83, 96, 101, 0.16);
+    box-shadow: 0 24px 70px rgba(7, 15, 21, 0.28);
+}
+
+.history-dialog-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1rem 1.1rem;
+    border-bottom: 1px solid rgba(83, 96, 101, 0.12);
+}
+
+.history-dialog-eyebrow {
+    margin: 0 0 0.2rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #6e7d76;
+}
+
+.history-dialog-header h3 {
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+.history-close {
+    flex: 0 0 auto;
+}
+
+.history-header-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.history-refresh,
+.history-close {
+    min-height: 36px;
+    padding: 0.45rem 0.7rem;
+    box-shadow: none;
+}
+
+.history-refresh:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.history-dialog-body {
+    overflow: auto;
+    padding: 1rem 1.1rem 1.15rem;
+}
+
+.history-state {
+    margin: 0;
+    color: #51626e;
+}
+
+.history-error {
+    color: #8d3333;
+}
+
+.history-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.history-filter {
+    min-height: 36px;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.82rem;
+    box-shadow: none;
+}
+
+.history-filter-active {
+    border-color: rgba(73, 120, 80, 0.35);
+    background: rgba(73, 120, 80, 0.14);
+    color: #2f5a38;
+}
+
+.history-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.history-item {
+    padding: 0.9rem 0.95rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(83, 96, 101, 0.1);
+    background: rgba(251, 249, 244, 0.96);
+}
+
+.history-item-info {
+    border-left: 4px solid rgba(73, 120, 80, 0.55);
+}
+
+.history-item-warning {
+    border-left: 4px solid rgba(197, 159, 52, 0.72);
+}
+
+.history-item-error {
+    border-left: 4px solid rgba(174, 70, 70, 0.8);
+}
+
+.history-item-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.history-item-time {
+    margin: 0 0 0.15rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #6c7a84;
+}
+
+.history-item-message {
+    margin: 0;
+    font-weight: 700;
+    color: #27343d;
+}
+
+.history-payload {
+    margin: 0.75rem 0 0;
+    padding: 0.75rem;
+    overflow: auto;
+    border-radius: 0.8rem;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(83, 96, 101, 0.1);
+    color: #44545f;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
 @media (max-width: 1120px) {
     .layout {
         display: block;
@@ -898,5 +1062,65 @@ textarea:focus {
     .program-toolbar button,
     .hero-actions .primary {
         padding: 0.68rem 0.95rem;
+    }
+
+    .dialog-backdrop {
+        padding: 0.45rem;
+    }
+
+    .history-dialog {
+        width: 100%;
+        max-height: 94vh;
+        border-radius: 1rem;
+    }
+
+    .history-dialog-header,
+    .history-dialog-body {
+        padding-left: 0.9rem;
+        padding-right: 0.9rem;
+    }
+
+    .history-dialog-header {
+        padding-top: 0.9rem;
+        padding-bottom: 0.8rem;
+    }
+
+    .history-dialog-header h3 {
+        font-size: 1rem;
+    }
+
+    .history-header-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .history-refresh,
+    .history-close {
+        padding: 0.38rem 0.6rem;
+        font-size: 0.76rem;
+    }
+
+    .history-item {
+        padding: 0.75rem 0.8rem;
+    }
+
+    .history-filters {
+        gap: 0.4rem;
+        margin-bottom: 0.65rem;
+    }
+
+    .history-filter {
+        font-size: 0.76rem;
+        padding: 0.38rem 0.6rem;
+    }
+
+    .history-item-top {
+        gap: 0.5rem;
+    }
+
+    .history-payload {
+        margin-top: 0.55rem;
+        padding: 0.65rem;
+        font-size: 0.74rem;
     }
 }
