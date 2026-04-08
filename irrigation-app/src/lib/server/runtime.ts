@@ -34,6 +34,16 @@ const activeZoneMetaByRunId = new Map<
 >();
 const userSkippedRunIds = new Set<string>();
 
+function runtimePriority(status: ProgramRuntimeSummary['status']): number {
+    if (status === 'running') {
+        return 2;
+    }
+    if (status === 'queued') {
+        return 1;
+    }
+    return 0;
+}
+
 export interface ProgramRuntimeSummary {
     programId: string;
     status: 'idle' | 'queued' | 'running';
@@ -94,14 +104,15 @@ export async function readRuntimeSummary(): Promise<ProgramRuntimeSummary[]> {
     const byProgram = new Map<string, ProgramRuntimeSummary>();
 
     for (const run of runs) {
+        const nextStatus: ProgramRuntimeSummary['status'] = run.status === 'running' ? 'running' : 'queued';
         const existing = byProgram.get(run.programId);
-        if (existing) {
+        if (existing && runtimePriority(existing.status) >= runtimePriority(nextStatus)) {
             continue;
         }
 
         byProgram.set(run.programId, {
             programId: run.programId,
-            status: run.status === 'running' ? 'running' : 'queued',
+            status: nextStatus,
             scheduledFor: run.scheduledFor,
             nextZoneIndex: run.nextZoneIndex,
             activeZoneId: run.activeZoneId,

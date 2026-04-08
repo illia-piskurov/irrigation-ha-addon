@@ -5,8 +5,8 @@
         type IrrigationProgram,
         type Weekday,
     } from "$lib";
-    import EntityAutocomplete from "$lib/components/EntityAutocomplete.svelte";
     import ProgramHistoryDialog from "./ProgramHistoryDialog.svelte";
+    import ProgramZoneList from "./ProgramZoneList.svelte";
 
     type EntityOption = {
         entityId: string;
@@ -82,6 +82,23 @@
 
     const isProgramRunning = $derived(runtime?.status === "running");
     const activeZoneId = $derived(runtime?.activeZoneId ?? null);
+    const activeProgressPercent = $derived(getActiveProgressPercent());
+    const zoneNameById = $derived(
+        Object.fromEntries(
+            program.zones.map((zone) => [
+                zone.id,
+                zone.label?.trim() || zone.entityId || "Зона без названия",
+            ]),
+        ),
+    );
+    const zoneNameByEntityId = $derived(
+        Object.fromEntries(
+            program.zones.map((zone) => [
+                zone.entityId,
+                zone.label?.trim() || zone.entityId || "Зона без названия",
+            ]),
+        ),
+    );
 
     $effect(() => {
         if (!isProgramRunning || !runtime?.activeZoneStartedAt) {
@@ -164,30 +181,18 @@
                     </div>
                 {/if}
             </div>
-            <span class="caret">{expanded ? "▴" : "▾"}</span>
+            <div class="program-header-end">
+                <ProgramHistoryDialog
+                    programId={program.id}
+                    programName={program.name}
+                    buttonClass="ghost compact icon-only"
+                    iconOnly={true}
+                    {zoneNameById}
+                    {zoneNameByEntityId}
+                />
+                <span class="caret">{expanded ? "▴" : "▾"}</span>
+            </div>
         </button>
-
-        <div class="program-header-actions">
-            <ProgramHistoryDialog
-                programId={program.id}
-                programName={program.name}
-                buttonClass="ghost compact"
-            />
-            <button
-                type="button"
-                class="ghost compact"
-                onclick={onToggleExpanded}
-            >
-                {expanded ? "Свернуть" : "Развернуть"}
-            </button>
-            <button
-                type="button"
-                class="danger compact"
-                onclick={onRemoveProgram}
-            >
-                Удалить
-            </button>
-        </div>
     </div>
 
     {#if expanded}
@@ -209,6 +214,10 @@
                             : "Пропустить активную зону"}
                     </button>
                 {/if}
+
+                <button type="button" class="danger" onclick={onRemoveProgram}>
+                    Удалить
+                </button>
             </div>
 
             {#if skipError}
@@ -286,110 +295,18 @@
                 {/each}
             </div>
 
-            <div class="zone-list">
-                <div class="zone-list-header">
-                    <h3>Зоны</h3>
-                    <p>Последовательный запуск, по одной зоне за раз.</p>
-                </div>
-
-                {#if program.zones.length === 0}
-                    <div class="empty-zones">
-                        Нет зон. Добавьте первую ниже.
-                    </div>
-                {/if}
-
-                {#each program.zones as zone, zoneIndex (zone.id)}
-                    <div
-                        class="zone-row"
-                        class:zone-row-running={isProgramRunning &&
-                            activeZoneId === zone.id}
-                    >
-                        <div class="zone-main">
-                            <label>
-                                <span>Сущность HA (entity_id)</span>
-                                <EntityAutocomplete
-                                    value={zone.label}
-                                    entityId={zone.entityId}
-                                    {entityOptions}
-                                    source={haEntitiesSource}
-                                    onValueChange={(value) =>
-                                        onUpdateZoneEntity(zone, value)}
-                                    onSelectEntityId={(entityId) =>
-                                        onUpdateZoneEntity(zone, entityId)}
-                                />
-                            </label>
-                            <label>
-                                <span>Минуты</span>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    max="240"
-                                    bind:value={zone.durationMinutes}
-                                />
-                            </label>
-                        </div>
-
-                        {#if isProgramRunning && activeZoneId === zone.id}
-                            <div
-                                class="zone-runtime-indicator"
-                                role="status"
-                                aria-live="polite"
-                            >
-                                <div class="zone-runtime-title">
-                                    <span class="zone-runtime-icon">💧</span>
-                                    <span>Зона выполняется</span>
-                                    <strong
-                                        >{Math.round(
-                                            getActiveProgressPercent(),
-                                        )}%</strong
-                                    >
-                                </div>
-                                <div class="progress-track" aria-hidden="true">
-                                    <div
-                                        class="progress-fill"
-                                        style={`width: ${getActiveProgressPercent()}%`}
-                                    ></div>
-                                </div>
-                            </div>
-                        {/if}
-
-                        <div class="zone-actions">
-                            <label class="toggle">
-                                <input
-                                    type="checkbox"
-                                    bind:checked={zone.enabled}
-                                />
-                                <span>Вкл</span>
-                            </label>
-                            <button
-                                type="button"
-                                class="ghost"
-                                onclick={() => onMoveZone(zoneIndex, -1)}
-                            >
-                                ↑
-                            </button>
-                            <button
-                                type="button"
-                                class="ghost"
-                                onclick={() => onMoveZone(zoneIndex, 1)}
-                            >
-                                ↓
-                            </button>
-                            <button
-                                type="button"
-                                class="danger"
-                                onclick={() => onRemoveZone(zone.id)}
-                            >
-                                Удалить
-                            </button>
-                        </div>
-                    </div>
-                {/each}
-
-                <button type="button" class="secondary" onclick={onAddZone}>
-                    Добавить пустую зону
-                </button>
-            </div>
+            <ProgramZoneList
+                {program}
+                {entityOptions}
+                {haEntitiesSource}
+                {isProgramRunning}
+                {activeZoneId}
+                {activeProgressPercent}
+                {onAddZone}
+                {onRemoveZone}
+                {onMoveZone}
+                {onUpdateZoneEntity}
+            />
         </div>
     {/if}
 </section>

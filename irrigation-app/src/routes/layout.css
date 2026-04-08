@@ -266,12 +266,11 @@ textarea:focus {
     transform: none;
 }
 
-.program-header-actions {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+.program-header-end {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex: 0 0 auto;
 }
 
 .program-card-running {
@@ -808,6 +807,29 @@ textarea:focus {
     box-shadow: none;
 }
 
+.icon-only {
+    width: 2rem;
+    min-width: 2rem;
+    min-height: 2rem;
+    height: 2rem;
+    padding: 0;
+    display: inline-grid;
+    place-items: center;
+    font-size: 0.95rem;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 .dialog-backdrop {
     position: fixed;
     inset: 0;
@@ -1027,23 +1049,9 @@ textarea:focus {
         flex-direction: column;
     }
 
-    .program-header {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.7rem;
-    }
-
     .program-header-main {
         width: 100%;
-    }
-
-    .program-header-actions {
-        width: 100%;
-        justify-content: flex-start;
-    }
-
-    .program-header-actions>* {
-        flex: 1 1 0;
+        align-items: flex-start;
     }
 
     .toolbar-actions,
@@ -1194,6 +1202,14 @@ textarea:focus {
     .compact {
         min-height: 40px;
         font-size: 0.78rem;
+    }
+
+    .icon-only {
+        width: 2rem;
+        min-width: 2rem;
+        min-height: 2rem;
+        height: 2rem;
+        padding: 0;
     }
 
     .dialog-backdrop {

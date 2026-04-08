@@ -1,33 +1,42 @@
 <script lang="ts">
     import { browser } from "$app/environment";
     import { base } from "$app/paths";
-
-    type ProgramEvent = {
-        id: string;
-        programId: string | null;
-        level: "info" | "warning" | "error";
-        message: string;
-        payload: unknown;
-        createdAt: string;
-    };
+    import {
+        formatHistoryPayload,
+        formatHistoryTimestamp,
+        getLevelLabel,
+        getLevelText,
+        getUserMessage,
+        getVisibleEvents,
+        summarizeDeveloperDetails,
+        summarizePayload,
+        type HistoryFilter,
+        type ProgramEvent,
+    } from "./history-utils";
 
     type Props = {
         programId: string;
         programName: string;
         buttonClass?: string;
+        iconOnly?: boolean;
+        zoneNameById?: Record<string, string>;
+        zoneNameByEntityId?: Record<string, string>;
     };
 
     let {
         programId,
         programName,
         buttonClass = "ghost history-button",
+        iconOnly = false,
+        zoneNameById = {},
+        zoneNameByEntityId = {},
     }: Props = $props();
 
     let isOpen = $state(false);
     let isLoading = $state(false);
     let loadError = $state("");
     let events = $state<ProgramEvent[]>([]);
-    let activeFilter = $state<"all" | "errors" | "switch-success">("all");
+    let activeFilter = $state<HistoryFilter>("all");
     let developerMode = $state(false);
 
     function openDialog() {
@@ -39,7 +48,7 @@
         isOpen = false;
     }
 
-    function setFilter(filter: "all" | "errors" | "switch-success") {
+    function setFilter(filter: HistoryFilter) {
         activeFilter = filter;
     }
 
@@ -73,94 +82,6 @@
         }
     }
 
-    function formatTimestamp(value: string): string {
-        return new Date(value).toLocaleString([], {
-            dateStyle: "short",
-            timeStyle: "medium",
-        });
-    }
-
-    function formatPayload(payload: unknown): string {
-        if (payload === null || payload === undefined) {
-            return "";
-        }
-
-        if (typeof payload === "string") {
-            return payload;
-        }
-
-        try {
-            return JSON.stringify(payload, null, 2);
-        } catch {
-            return String(payload);
-        }
-    }
-
-    function summarizePayload(payload: unknown): string {
-        if (!payload || typeof payload !== "object") {
-            return "";
-        }
-
-        const data = payload as Record<string, unknown>;
-        const parts: string[] = [];
-
-        if (typeof data.zoneId === "string") {
-            parts.push(`Зона: ${data.zoneId}`);
-        }
-
-        if (typeof data.entityId === "string") {
-            parts.push(`Сущность: ${data.entityId}`);
-        }
-
-        if (typeof data.state === "string") {
-            parts.push(`Состояние: ${data.state}`);
-        }
-
-        if (typeof data.retryAt === "string") {
-            parts.push(
-                `Повтор: ${new Date(data.retryAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
-            );
-        }
-
-        if (typeof data.error === "string") {
-            parts.push(`Ошибка: ${data.error}`);
-        }
-
-        return parts.join(" · ");
-    }
-
-    function getLevelLabel(level: ProgramEvent["level"]): string {
-        if (level === "warning") {
-            return "warning";
-        }
-
-        if (level === "error") {
-            return "error";
-        }
-
-        return "info";
-    }
-
-    function isSwitchSuccessEvent(event: ProgramEvent): boolean {
-        return (
-            event.level === "info" &&
-            (event.message === "Switch turned on" ||
-                event.message === "Switch turned off")
-        );
-    }
-
-    function getVisibleEvents(): ProgramEvent[] {
-        if (activeFilter === "errors") {
-            return events.filter((event) => event.level === "error");
-        }
-
-        if (activeFilter === "switch-success") {
-            return events.filter(isSwitchSuccessEvent);
-        }
-
-        return events;
-    }
-
     function handleKeydown(event: KeyboardEvent) {
         if (event.key === "Escape") {
             closeDialog();
@@ -171,7 +92,12 @@
 <svelte:window on:keydown={handleKeydown} />
 
 <button type="button" class={buttonClass} onclick={openDialog}>
-    История
+    {#if iconOnly}
+        <span aria-hidden="true">🕘</span>
+        <span class="visually-hidden">История</span>
+    {:else}
+        История
+    {/if}
 </button>
 
 {#if isOpen}
@@ -250,7 +176,10 @@
                         </button>
                     </div>
 
-                    {@const visibleEvents = getVisibleEvents()}
+                    {@const visibleEvents = getVisibleEvents(
+                        events,
+                        activeFilter,
+                    )}
 
                     {#if visibleEvents.length === 0}
                         <p class="history-state">
@@ -265,30 +194,44 @@
                                     <div class="history-item-top">
                                         <div>
                                             <p class="history-item-time">
-                                                {formatTimestamp(
+                                                {formatHistoryTimestamp(
                                                     event.createdAt,
                                                 )}
                                             </p>
                                             <p class="history-item-message">
-                                                {event.message}
+                                                {getUserMessage(
+                                                    event,
+                                                    zoneNameById,
+                                                    zoneNameByEntityId,
+                                                )}
                                             </p>
                                         </div>
                                         <span
                                             class={`status-chip status-${getLevelLabel(event.level)}`}
                                         >
-                                            {event.level}
+                                            {getLevelText(event.level)}
                                         </span>
                                     </div>
 
-                                    {#if summarizePayload(event.payload)}
+                                    {#if summarizePayload(event)}
                                         <p class="history-item-summary">
-                                            {summarizePayload(event.payload)}
+                                            {summarizePayload(event)}
                                         </p>
                                     {/if}
 
-                                    {#if developerMode && formatPayload(event.payload)}
+                                    {#if developerMode && summarizeDeveloperDetails(event.payload, zoneNameById, zoneNameByEntityId)}
+                                        <p class="history-item-summary">
+                                            {summarizeDeveloperDetails(
+                                                event.payload,
+                                                zoneNameById,
+                                                zoneNameByEntityId,
+                                            )}
+                                        </p>
+                                    {/if}
+
+                                    {#if developerMode && formatHistoryPayload(event.payload)}
                                         <pre
-                                            class="history-payload">{formatPayload(
+                                            class="history-payload">{formatHistoryPayload(
                                                 event.payload,
                                             )}</pre>
                                     {/if}

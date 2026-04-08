@@ -91,7 +91,7 @@
 
         const interval = setInterval(() => {
             void loadRuntimeStatus();
-        }, 15_000);
+        }, 3_000);
 
         return () => {
             clearInterval(interval);
