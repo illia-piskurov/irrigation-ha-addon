@@ -235,6 +235,12 @@ textarea:focus {
 .program-card {
     border-radius: 1.4rem;
     overflow: hidden;
+    position: relative;
+    z-index: 0;
+}
+
+.program-card:focus-within {
+    z-index: 30;
 }
 
 .program-card-expanded {
