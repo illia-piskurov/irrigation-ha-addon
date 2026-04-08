@@ -461,6 +461,13 @@ textarea:focus {
     font-size: 0.75rem;
 }
 
+.entity-id-value {
+    display: block;
+    margin-top: 0.3rem;
+    color: #6d7d87;
+    font-size: 0.74rem;
+}
+
 .entity-suggestions {
     position: absolute;
     z-index: 20;

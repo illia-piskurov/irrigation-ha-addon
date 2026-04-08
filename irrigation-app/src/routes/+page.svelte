@@ -147,12 +147,29 @@
         zone: { entityId: string; label: string },
         value: string,
     ) {
-        zone.entityId = value;
-
-        const matched = collectEntityOptions().find(
-            (entity) => entity.entityId === value,
+        const nextValue = value.trim();
+        const matchedByEntity = collectEntityOptions().find(
+            (entity) => entity.entityId === nextValue,
         );
-        zone.label = matched?.label || humanizeIdentifier(value);
+        const matchedByLabel = collectEntityOptions().find(
+            (entity) => entity.label.toLowerCase() === nextValue.toLowerCase(),
+        );
+        const matched = matchedByEntity ?? matchedByLabel;
+
+        if (matched) {
+            zone.entityId = matched.entityId;
+            zone.label = matched.label;
+            return;
+        }
+
+        const looksLikeEntityId = /^[a-z0-9_]+\.[a-z0-9_]+$/i.test(nextValue);
+        if (looksLikeEntityId) {
+            zone.entityId = nextValue;
+            zone.label = humanizeIdentifier(nextValue);
+            return;
+        }
+
+        zone.label = value;
     }
 
     function collectEntityOptions(): Array<{
@@ -185,8 +202,8 @@
             .sort((left, right) => left.entityId.localeCompare(right.entityId));
     }
 
-    function getEntitySuggestions(zone: { entityId: string }) {
-        const query = zone.entityId.trim().toLowerCase();
+    function getEntitySuggestions(zone: { entityId: string; label: string }) {
+        const query = (zone.label || zone.entityId).trim().toLowerCase();
         const options = collectEntityOptions();
 
         if (!query) {
@@ -208,6 +225,10 @@
     ) {
         updateZoneEntity(zone, entityId);
         activeZoneAutocompleteId = "";
+    }
+
+    function getZoneDisplayValue(zone: { entityId: string; label: string }) {
+        return zone.label || humanizeIdentifier(zone.entityId);
     }
 
     function closeAutocompleteDeferred() {
@@ -499,8 +520,10 @@
                                                     >
                                                         <input
                                                             type="text"
-                                                            value={zone.entityId}
-                                                            placeholder="switch.poliv_..."
+                                                            value={getZoneDisplayValue(
+                                                                zone,
+                                                            )}
+                                                            placeholder="Начните вводить имя или entity_id"
                                                             onfocus={() =>
                                                                 (activeZoneAutocompleteId =
                                                                     zone.id)}
@@ -513,6 +536,11 @@
                                                                     ).value,
                                                                 )}
                                                         />
+                                                        <small
+                                                            class="entity-id-value"
+                                                            >ID: {zone.entityId ||
+                                                                "не выбран"}</small
+                                                        >
 
                                                         {#if activeZoneAutocompleteId === zone.id}
                                                             {@const suggestions =

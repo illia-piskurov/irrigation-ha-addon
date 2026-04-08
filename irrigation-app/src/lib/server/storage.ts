@@ -10,18 +10,7 @@ const stateFilePath = path.join(dataDirectory, 'state.json');
 export async function readAppState(): Promise<IrrigationAppState> {
     try {
         const contents = await readFile(stateFilePath, 'utf8');
-        const parsedState = normalizeState(JSON.parse(contents));
-
-        if (parsedState.programs.length === 0) {
-            const seededState = normalizeState({
-                ...parsedState,
-                programs: createSeedState().programs
-            });
-            await writeAppState(seededState);
-            return seededState;
-        }
-
-        return parsedState;
+        return normalizeState(JSON.parse(contents));
     } catch (error) {
         if (isMissingFileError(error)) {
             const initialState = normalizeState(createSeedState());
