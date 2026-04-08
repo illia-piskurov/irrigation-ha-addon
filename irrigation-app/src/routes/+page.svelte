@@ -1,5 +1,6 @@
 <script lang="ts">
     import { browser } from "$app/environment";
+    import { base } from "$app/paths";
     import {
         DEFAULT_DURATION_MINUTES,
         WEEKDAYS,
@@ -248,7 +249,7 @@
         }
 
         try {
-            const response = await fetch("/api/state", {
+            const response = await fetch(`${base}/api/state`, {
                 method: "PUT",
                 headers: {
                     "content-type": "application/json",
@@ -272,7 +273,7 @@
 
     async function loadHaEntities() {
         try {
-            const response = await fetch("/api/ha/entities");
+            const response = await fetch(`${base}/api/ha/entities`);
             const payload = (await response.json()) as {
                 entities: Array<{ entityId: string; label: string }>;
                 source?: string;
