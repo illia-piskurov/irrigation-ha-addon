@@ -1,5 +1,5 @@
 name: "Управление поливом"
-version: "0.2.12"
+version: "0.2.13"
 slug: "irrigation_manager"
 description: "Simple Home Assistant irrigation program manager with sequential zone control"
 arch:
@@ -11,6 +11,8 @@ panel_icon: mdi:sprinkler-variant
 panel_title: Управление поливом
 ingress: true
 ingress_port: 8000
+ports:
+  8000/tcp: 8000
 hassio_api: true
 homeassistant_api: true
 map:
