@@ -238,14 +238,44 @@ textarea:focus {
 }
 
 .program-header {
-    width: 100%;
     display: flex;
     justify-content: space-between;
     gap: 1rem;
-    align-items: center;
+    align-items: stretch;
     padding: 1.1rem 1.2rem;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 243, 235, 0.96));
     text-align: left;
+}
+
+.program-header-main {
+    display: flex;
+    flex: 1 1 auto;
+    justify-content: space-between;
+    gap: 0.9rem;
+    align-items: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    min-height: 0;
+    text-align: left;
+}
+
+.program-header-main:hover,
+.program-header-main:active {
+    transform: none;
+}
+
+.program-header-actions {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.program-card-running {
+    border-color: rgba(73, 120, 80, 0.28);
 }
 
 .program-header h2,
@@ -276,6 +306,41 @@ textarea:focus {
     margin: 0.28rem 0 0;
     font-size: 0.82rem;
     color: #51626e;
+}
+
+.program-progress-inline {
+    margin-top: 0.45rem;
+    display: grid;
+    gap: 0.38rem;
+    max-width: 360px;
+}
+
+.program-running-chip {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.28rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 800;
+    color: #2f5a38;
+    background: rgba(73, 120, 80, 0.14);
+}
+
+.progress-track {
+    width: 100%;
+    height: 0.4rem;
+    border-radius: 999px;
+    background: rgba(83, 96, 101, 0.16);
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #4f8058 0%, #68a274 100%);
+    transition: width 0.45s ease;
 }
 
 .badge-row {
@@ -453,6 +518,32 @@ textarea:focus {
     border-radius: 1rem;
     background: rgba(251, 249, 244, 0.98);
     border: 1px solid rgba(83, 96, 101, 0.1);
+}
+
+.zone-row-running {
+    border-color: rgba(73, 120, 80, 0.28);
+    background: linear-gradient(180deg, rgba(236, 246, 238, 0.95), rgba(247, 252, 248, 0.95));
+}
+
+.zone-runtime-indicator {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 0.4rem;
+    margin-top: 0.15rem;
+}
+
+.zone-runtime-title {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #315a3a;
+    font-size: 0.84rem;
+    font-weight: 700;
+}
+
+.zone-runtime-title strong {
+    margin-left: auto;
+    font-size: 0.82rem;
 }
 
 .zone-main {
@@ -710,6 +801,13 @@ textarea:focus {
     white-space: nowrap;
 }
 
+.compact {
+    min-height: 38px;
+    padding: 0.55rem 0.8rem;
+    font-size: 0.8rem;
+    box-shadow: none;
+}
+
 .dialog-backdrop {
     position: fixed;
     inset: 0;
@@ -758,6 +856,12 @@ textarea:focus {
 
 .history-close {
     flex: 0 0 auto;
+}
+
+.history-item-summary {
+    margin: 0.4rem 0 0;
+    font-size: 0.82rem;
+    color: #4f5f6b;
 }
 
 .history-header-actions {
@@ -923,6 +1027,25 @@ textarea:focus {
         flex-direction: column;
     }
 
+    .program-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.7rem;
+    }
+
+    .program-header-main {
+        width: 100%;
+    }
+
+    .program-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .program-header-actions>* {
+        flex: 1 1 0;
+    }
+
     .toolbar-actions,
     .zone-actions {
         width: 100%;
@@ -991,6 +1114,10 @@ textarea:focus {
 
     .program-index {
         font-size: 0.68rem;
+    }
+
+    .program-progress-inline {
+        max-width: 100%;
     }
 
     .program-meta,
@@ -1062,6 +1189,11 @@ textarea:focus {
     .program-toolbar button,
     .hero-actions .primary {
         padding: 0.68rem 0.95rem;
+    }
+
+    .compact {
+        min-height: 40px;
+        font-size: 0.78rem;
     }
 
     .dialog-backdrop {

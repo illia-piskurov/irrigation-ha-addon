@@ -25,6 +25,8 @@
         scheduledFor: string | null;
         nextZoneIndex: number | null;
         activeZoneId: string | null;
+        activeZoneStartedAt: string | null;
+        activeZoneDurationMinutes: number | null;
         retryAt: string | null;
         lastError: string | null;
     };
@@ -332,6 +334,28 @@
         }
     }
 
+    async function requestSkipZone(programId: string) {
+        const response = await fetch(`${base}/api/runtime`, {
+            method: "POST",
+            headers: {
+                "content-type": "application/json",
+            },
+            body: JSON.stringify({
+                action: "skip-zone",
+                programId,
+            }),
+        });
+
+        if (!response.ok) {
+            const payload = (await response.json().catch(() => null)) as {
+                error?: string;
+            } | null;
+            throw new Error(payload?.error ?? "Не удалось пропустить зону");
+        }
+
+        await loadRuntimeStatus();
+    }
+
     function getProgramRuntimeText(programId: string): string {
         const runtime = runtimeByProgramId[programId];
 
@@ -396,6 +420,7 @@
                         {index}
                         expanded={expandedProgramId === program.id}
                         runtimeText={getProgramRuntimeText(program.id)}
+                        runtime={runtimeByProgramId[program.id] ?? null}
                         entityOptions={collectEntityOptions()}
                         {haEntitiesSource}
                         defaultDurationMinutes={draft.settings
@@ -413,6 +438,7 @@
                         onUpdateStartTime={(part, value) =>
                             updateStartTime(program, part, value)}
                         onUpdateDefaultDurationMinutes={updateDefaultDurationMinutes}
+                        onSkipActiveZone={() => requestSkipZone(program.id)}
                         onUpdateZoneEntity={(zone, value) =>
                             updateZoneEntity(zone, value)}
                     />

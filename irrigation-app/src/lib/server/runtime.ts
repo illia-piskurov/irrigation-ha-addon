@@ -15,11 +15,24 @@ const SCHEDULER_TICK_MS = 30_000;
 const EXECUTOR_TICK_MS = 5_000;
 const RETRY_DELAY_MS = 2 * 60 * 1000;
 
+class ZoneSkippedError extends Error {
+    constructor(message = 'Zone skipped by user') {
+        super(message);
+        this.name = 'ZoneSkippedError';
+    }
+}
+
 let workersStarted = false;
 let schedulerTimer: ReturnType<typeof setInterval> | null = null;
 let executorTimer: ReturnType<typeof setInterval> | null = null;
 let schedulerBusy = false;
 let executorBusy = false;
+const activeZoneAbortControllers = new Map<string, AbortController>();
+const activeZoneMetaByRunId = new Map<
+    string,
+    { programId: string; zoneId: string; startedAt: string; durationMinutes: number }
+>();
+const userSkippedRunIds = new Set<string>();
 
 export interface ProgramRuntimeSummary {
     programId: string;
@@ -27,6 +40,8 @@ export interface ProgramRuntimeSummary {
     scheduledFor: string | null;
     nextZoneIndex: number | null;
     activeZoneId: string | null;
+    activeZoneStartedAt: string | null;
+    activeZoneDurationMinutes: number | null;
     retryAt: string | null;
     lastError: string | null;
 }
@@ -60,14 +75,21 @@ export async function readRuntimeSummary(): Promise<ProgramRuntimeSummary[]> {
     const dataSource = await getAppDataSource();
     const runRepository = dataSource.getRepository(ProgramRunSchema);
     const programRepository = dataSource.getRepository(ProgramSchema);
+    const zoneRepository = dataSource.getRepository(ZoneSchema);
 
-    const [runs, programs] = await Promise.all([
+    const [runs, programs, zones] = await Promise.all([
         runRepository.find({
             where: [{ status: 'running' }, { status: 'pending' }],
             order: { scheduledFor: 'ASC', createdAt: 'ASC' }
         }),
-        programRepository.find({ select: { id: true } })
+        programRepository.find({ select: { id: true } }),
+        zoneRepository.find({ select: { id: true, durationMinutes: true } })
     ]);
+
+    const durationByZoneId = new Map<string, number>();
+    for (const zone of zones) {
+        durationByZoneId.set(zone.id, zone.durationMinutes);
+    }
 
     const byProgram = new Map<string, ProgramRuntimeSummary>();
 
@@ -83,6 +105,10 @@ export async function readRuntimeSummary(): Promise<ProgramRuntimeSummary[]> {
             scheduledFor: run.scheduledFor,
             nextZoneIndex: run.nextZoneIndex,
             activeZoneId: run.activeZoneId,
+            activeZoneStartedAt: activeZoneMetaByRunId.get(run.id)?.startedAt ?? null,
+            activeZoneDurationMinutes:
+                activeZoneMetaByRunId.get(run.id)?.durationMinutes ??
+                (run.activeZoneId ? (durationByZoneId.get(run.activeZoneId) ?? null) : null),
             retryAt: run.retryAt,
             lastError: run.lastError
         });
@@ -96,6 +122,8 @@ export async function readRuntimeSummary(): Promise<ProgramRuntimeSummary[]> {
                 scheduledFor: null,
                 nextZoneIndex: null,
                 activeZoneId: null,
+                activeZoneStartedAt: null,
+                activeZoneDurationMinutes: null,
                 retryAt: null,
                 lastError: null
             });
@@ -103,6 +131,26 @@ export async function readRuntimeSummary(): Promise<ProgramRuntimeSummary[]> {
     }
 
     return Array.from(byProgram.values());
+}
+
+export async function skipActiveZone(programId: string): Promise<boolean> {
+    const dataSource = await getAppDataSource();
+    const runRepository = dataSource.getRepository(ProgramRunSchema);
+
+    const run = await runRepository
+        .createQueryBuilder('run')
+        .where('run.programId = :programId', { programId })
+        .andWhere('run.status = :status', { status: 'running' })
+        .orderBy('run.updatedAt', 'DESC')
+        .getOne();
+
+    if (!run || !run.activeZoneId) {
+        return false;
+    }
+
+    userSkippedRunIds.add(run.id);
+    activeZoneAbortControllers.get(run.id)?.abort();
+    return true;
 }
 
 async function schedulerTick(): Promise<void> {
@@ -246,10 +294,17 @@ async function executeRun(runId: string): Promise<void> {
 
     for (let index = run.nextZoneIndex; index < zones.length; index += 1) {
         const zone = zones[index];
+        userSkippedRunIds.delete(run.id);
         run.nextZoneIndex = index;
         run.activeZoneId = zone.id;
         run.updatedAt = new Date().toISOString();
         await runRepository.save(run);
+        activeZoneMetaByRunId.set(run.id, {
+            programId: run.programId,
+            zoneId: zone.id,
+            startedAt: new Date().toISOString(),
+            durationMinutes: zone.durationMinutes
+        });
 
         await writeProgramEvent('Zone started', {
             programId: run.programId,
@@ -258,7 +313,7 @@ async function executeRun(runId: string): Promise<void> {
         });
 
         try {
-            await executeZone(run.programId, zone.id, zone.entityId, zone.durationMinutes);
+            await executeZone(run.id, run.programId, zone.id, zone.entityId, zone.durationMinutes);
 
             run.retryCount = 0;
             run.retryAt = null;
@@ -267,6 +322,7 @@ async function executeRun(runId: string): Promise<void> {
             run.activeZoneId = null;
             run.updatedAt = new Date().toISOString();
             await runRepository.save(run);
+            activeZoneMetaByRunId.delete(run.id);
 
             await writeProgramEvent('Zone completed', {
                 programId: run.programId,
@@ -274,6 +330,25 @@ async function executeRun(runId: string): Promise<void> {
                 payload: { zoneId: zone.id, entityId: zone.entityId }
             });
         } catch (error) {
+            if (error instanceof ZoneSkippedError || userSkippedRunIds.has(run.id)) {
+                userSkippedRunIds.delete(run.id);
+                run.retryCount = 0;
+                run.retryAt = null;
+                run.lastError = null;
+                run.nextZoneIndex = index + 1;
+                run.activeZoneId = null;
+                run.updatedAt = new Date().toISOString();
+                await runRepository.save(run);
+                activeZoneMetaByRunId.delete(run.id);
+
+                await writeProgramEvent('Zone skipped by user', {
+                    programId: run.programId,
+                    level: 'info',
+                    payload: { zoneId: zone.id, entityId: zone.entityId }
+                });
+                continue;
+            }
+
             const message = stringifyError(error);
 
             if (run.retryCount < 1) {
@@ -283,6 +358,7 @@ async function executeRun(runId: string): Promise<void> {
                 run.lastError = message;
                 run.updatedAt = new Date().toISOString();
                 await runRepository.save(run);
+                activeZoneMetaByRunId.delete(run.id);
 
                 await writeProgramEvent('Zone failed, retry scheduled', {
                     programId: run.programId,
@@ -305,6 +381,7 @@ async function executeRun(runId: string): Promise<void> {
             run.activeZoneId = null;
             run.updatedAt = new Date().toISOString();
             await runRepository.save(run);
+            activeZoneMetaByRunId.delete(run.id);
 
             await writeProgramEvent('Zone skipped after retry failure', {
                 programId: run.programId,
@@ -332,6 +409,9 @@ async function finishRun(run: ProgramRunRecord, status: ProgramRunStatus, errorM
     }
     run.updatedAt = run.completedAt;
     await runRepository.save(run);
+    activeZoneAbortControllers.delete(run.id);
+    activeZoneMetaByRunId.delete(run.id);
+    userSkippedRunIds.delete(run.id);
 
     await writeProgramEvent(
         status === 'completed' ? 'Program run completed' : 'Program run completed with errors',
@@ -348,6 +428,7 @@ async function finishRun(run: ProgramRunRecord, status: ProgramRunStatus, errorM
 }
 
 async function executeZone(
+    runId: string,
     programId: string,
     zoneId: string,
     entityId: string,
@@ -367,8 +448,14 @@ async function executeZone(
                 state: turnOnResult.state
             }
         });
-        await delay(durationMinutes * 60_000);
+        if (userSkippedRunIds.has(runId)) {
+            throw new ZoneSkippedError();
+        }
+        await delayWithAbort(runId, durationMinutes * 60_000);
     } catch (error) {
+        if (error instanceof ZoneSkippedError) {
+            throw error;
+        }
         await writeProgramEvent('Switch turn on failed', {
             programId,
             level: 'error',
@@ -380,8 +467,8 @@ async function executeZone(
         });
         throw error;
     } finally {
-        if (switchEnabled) {
-            try {
+        try {
+            if (switchEnabled) {
                 const turnOffResult = await turnSwitchOff(entityId);
                 await writeProgramEvent('Switch turned off', {
                     programId,
@@ -392,18 +479,20 @@ async function executeZone(
                         state: turnOffResult.state
                     }
                 });
-            } catch (error) {
-                await writeProgramEvent('Switch turn off failed', {
-                    programId,
-                    level: 'error',
-                    payload: {
-                        zoneId,
-                        entityId,
-                        error: stringifyError(error)
-                    }
-                });
-                throw error;
             }
+        } catch (error) {
+            await writeProgramEvent('Switch turn off failed', {
+                programId,
+                level: 'error',
+                payload: {
+                    zoneId,
+                    entityId,
+                    error: stringifyError(error)
+                }
+            });
+            throw error;
+        } finally {
+            activeZoneAbortControllers.delete(runId);
         }
     }
 }
@@ -418,6 +507,9 @@ async function recoverStaleRuns(): Promise<void> {
     }
 
     for (const staleRun of staleRuns) {
+        activeZoneAbortControllers.delete(staleRun.id);
+        activeZoneMetaByRunId.delete(staleRun.id);
+        userSkippedRunIds.delete(staleRun.id);
         staleRun.status = 'pending';
         staleRun.hadErrors = true;
         staleRun.retryCount = 0;
@@ -486,9 +578,25 @@ function toMinuteIso(date: Date): string {
     return copy.toISOString();
 }
 
-function delay(milliseconds: number): Promise<void> {
-    return new Promise((resolve) => {
-        setTimeout(resolve, milliseconds);
+function delayWithAbort(runId: string, milliseconds: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const controller = new AbortController();
+        activeZoneAbortControllers.set(runId, controller);
+
+        const timeoutId = setTimeout(() => {
+            activeZoneAbortControllers.delete(runId);
+            resolve();
+        }, milliseconds);
+
+        controller.signal.addEventListener(
+            'abort',
+            () => {
+                clearTimeout(timeoutId);
+                activeZoneAbortControllers.delete(runId);
+                reject(new ZoneSkippedError());
+            },
+            { once: true }
+        );
     });
 }
 

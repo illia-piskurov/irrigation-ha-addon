@@ -14,15 +14,21 @@
     type Props = {
         programId: string;
         programName: string;
+        buttonClass?: string;
     };
 
-    let { programId, programName }: Props = $props();
+    let {
+        programId,
+        programName,
+        buttonClass = "ghost history-button",
+    }: Props = $props();
 
     let isOpen = $state(false);
     let isLoading = $state(false);
     let loadError = $state("");
     let events = $state<ProgramEvent[]>([]);
     let activeFilter = $state<"all" | "errors" | "switch-success">("all");
+    let developerMode = $state(false);
 
     function openDialog() {
         isOpen = true;
@@ -90,6 +96,39 @@
         }
     }
 
+    function summarizePayload(payload: unknown): string {
+        if (!payload || typeof payload !== "object") {
+            return "";
+        }
+
+        const data = payload as Record<string, unknown>;
+        const parts: string[] = [];
+
+        if (typeof data.zoneId === "string") {
+            parts.push(`Зона: ${data.zoneId}`);
+        }
+
+        if (typeof data.entityId === "string") {
+            parts.push(`Сущность: ${data.entityId}`);
+        }
+
+        if (typeof data.state === "string") {
+            parts.push(`Состояние: ${data.state}`);
+        }
+
+        if (typeof data.retryAt === "string") {
+            parts.push(
+                `Повтор: ${new Date(data.retryAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
+            );
+        }
+
+        if (typeof data.error === "string") {
+            parts.push(`Ошибка: ${data.error}`);
+        }
+
+        return parts.join(" · ");
+    }
+
     function getLevelLabel(level: ProgramEvent["level"]): string {
         if (level === "warning") {
             return "warning";
@@ -131,7 +170,7 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-<button type="button" class="ghost history-button" onclick={openDialog}>
+<button type="button" class={buttonClass} onclick={openDialog}>
     История
 </button>
 
@@ -200,6 +239,15 @@
                         >
                             Успешные переключения
                         </button>
+                        <button
+                            type="button"
+                            class={`ghost history-filter ${developerMode ? "history-filter-active" : ""}`}
+                            onclick={() => (developerMode = !developerMode)}
+                        >
+                            {developerMode
+                                ? "Режим разработчика: вкл"
+                                : "Режим разработчика"}
+                        </button>
                     </div>
 
                     {@const visibleEvents = getVisibleEvents()}
@@ -232,7 +280,13 @@
                                         </span>
                                     </div>
 
-                                    {#if formatPayload(event.payload)}
+                                    {#if summarizePayload(event.payload)}
+                                        <p class="history-item-summary">
+                                            {summarizePayload(event.payload)}
+                                        </p>
+                                    {/if}
+
+                                    {#if developerMode && formatPayload(event.payload)}
                                         <pre
                                             class="history-payload">{formatPayload(
                                                 event.payload,
