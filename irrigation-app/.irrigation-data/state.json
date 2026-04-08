@@ -1,0 +1,415 @@
+{
+  "settings": {
+    "homeAssistantUrl": "",
+    "accessToken": "",
+    "defaultDurationMinutes": 10
+  },
+  "programs": [
+    {
+      "id": "54b8ca13-0913-47f4-b6af-c881ba774656",
+      "name": "Новая программа",
+      "enabled": true,
+      "startTime": "06:00",
+      "days": [
+        "mon",
+        "wed",
+        "fri"
+      ],
+      "zones": []
+    },
+    {
+      "id": "kpp1:0",
+      "name": "Kpp1",
+      "enabled": true,
+      "startTime": "06:00",
+      "days": [
+        "mon",
+        "wed",
+        "fri"
+      ],
+      "zones": [
+        {
+          "id": "kpp1:0:switch.poliv_vdol_starogo_zdlaniia_13_zona",
+          "entityId": "switch.poliv_vdol_starogo_zdlaniia_13_zona",
+          "label": "Poliv Vdol Starogo Zdlaniia 13 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "kpp1:1:switch.poliv_vdol_starogo_zdlaniia_14_zona",
+          "entityId": "switch.poliv_vdol_starogo_zdlaniia_14_zona",
+          "label": "Poliv Vdol Starogo Zdlaniia 14 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "kpp1:2:switch.poliv_vdol_starogo_zdlaniia_15_zona",
+          "entityId": "switch.poliv_vdol_starogo_zdlaniia_15_zona",
+          "label": "Poliv Vdol Starogo Zdlaniia 15 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "kpp1:3:switch.poliv_vdol_korporativnoi_ploshchadki_16_zona",
+          "entityId": "switch.poliv_vdol_korporativnoi_ploshchadki_16_zona",
+          "label": "Poliv Vdol Korporativnoi Ploshchadki 16 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "kpp1:4:switch.poliv_vdol_korporativnoi_ploshchadki_17_zona",
+          "entityId": "switch.poliv_vdol_korporativnoi_ploshchadki_17_zona",
+          "label": "Poliv Vdol Korporativnoi Ploshchadki 17 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "kpp1:5:switch.poliv_vdol_mangalnoi_zony_18_zona",
+          "entityId": "switch.poliv_vdol_mangalnoi_zony_18_zona",
+          "label": "Poliv Vdol Mangalnoi Zony 18 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "sok1:1",
+      "name": "Sok1",
+      "enabled": true,
+      "startTime": "06:00",
+      "days": [
+        "mon",
+        "wed",
+        "fri"
+      ],
+      "zones": [
+        {
+          "id": "sok1:0:switch.poliv_sok1_1_zona",
+          "entityId": "switch.poliv_sok1_1_zona",
+          "label": "Poliv Sok1 1 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok1:1:switch.poliv_sok1_2_zona",
+          "entityId": "switch.poliv_sok1_2_zona",
+          "label": "Poliv Sok1 2 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok1:2:switch.poliv_sok1_3_zona",
+          "entityId": "switch.poliv_sok1_3_zona",
+          "label": "Poliv Sok1 3 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok1:3:switch.poliv_sok1_4_zona",
+          "entityId": "switch.poliv_sok1_4_zona",
+          "label": "Poliv Sok1 4 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok1:4:switch.poliv_sok1_5_zona",
+          "entityId": "switch.poliv_sok1_5_zona",
+          "label": "Poliv Sok1 5 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok1:5:switch.poliv_sok1_6_zona",
+          "entityId": "switch.poliv_sok1_6_zona",
+          "label": "Poliv Sok1 6 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok1:6:switch.poliv_sok1_7_zona",
+          "entityId": "switch.poliv_sok1_7_zona",
+          "label": "Poliv Sok1 7 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok1:7:switch.poliv_sok1_8_zona",
+          "entityId": "switch.poliv_sok1_8_zona",
+          "label": "Poliv Sok1 8 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok1:8:switch.poliv_sok1_9_zona",
+          "entityId": "switch.poliv_sok1_9_zona",
+          "label": "Poliv Sok1 9 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok1:9:switch.poliv_sok1_10_zona",
+          "entityId": "switch.poliv_sok1_10_zona",
+          "label": "Poliv Sok1 10 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "drip_irrigation:2",
+      "name": "Drip Irrigation",
+      "enabled": true,
+      "startTime": "06:00",
+      "days": [
+        "mon",
+        "wed",
+        "fri"
+      ],
+      "zones": [
+        {
+          "id": "drip_irrigation:0:switch.kapelnyi_poliv_vdol_dorogi_sok2",
+          "entityId": "switch.kapelnyi_poliv_vdol_dorogi_sok2",
+          "label": "Kapelnyi Poliv Vdol Dorogi Sok2",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "drip_irrigation:1:switch.kapelnyi_poliv_vozle_sok3",
+          "entityId": "switch.kapelnyi_poliv_vozle_sok3",
+          "label": "Kapelnyi Poliv Vozle Sok3",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "drip_irrigation:2:switch.kapelnyi_poliv_vozle_fontana_nad_dorogoi",
+          "entityId": "switch.kapelnyi_poliv_vozle_fontana_nad_dorogoi",
+          "label": "Kapelnyi Poliv Vozle Fontana Nad Dorogoi",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "drip_irrigation:3:switch.kapelnyi_poliv_stena",
+          "entityId": "switch.kapelnyi_poliv_stena",
+          "label": "Kapelnyi Poliv Stena",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "drip_irrigation:4:switch.kapelnyi_poliv_ugol",
+          "entityId": "switch.kapelnyi_poliv_ugol",
+          "label": "Kapelnyi Poliv Ugol",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "drip_irrigation:5:switch.poliv_kapelnyi_za_bolshoi_besedkoi_3_zona",
+          "entityId": "switch.poliv_kapelnyi_za_bolshoi_besedkoi_3_zona",
+          "label": "Poliv Kapelnyi Za Bolshoi Besedkoi 3 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "drip_irrigation:6:switch.poliv_kapelnyi_tui_vdol_dorozhki_sok3_6_zona",
+          "entityId": "switch.poliv_kapelnyi_tui_vdol_dorozhki_sok3_6_zona",
+          "label": "Poliv Kapelnyi Tui Vdol Dorozhki Sok3 6 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "sok2_paradniy:3",
+      "name": "Sok2 Paradniy",
+      "enabled": true,
+      "startTime": "06:00",
+      "days": [
+        "mon",
+        "wed",
+        "fri"
+      ],
+      "zones": [
+        {
+          "id": "sok2_paradniy:0:switch.stena",
+          "entityId": "switch.stena",
+          "label": "Stena",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok2_paradniy:1:switch.stsena_iolka",
+          "entityId": "switch.stsena_iolka",
+          "label": "Stsena Iolka",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok2_paradniy:2:switch.lestnichnyi_marsh_sok2",
+          "entityId": "switch.lestnichnyi_marsh_sok2",
+          "label": "Lestnichnyi Marsh Sok2",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok2_paradniy:3:switch.poliv_ot_sok3_do_perekreska",
+          "entityId": "switch.poliv_ot_sok3_do_perekreska",
+          "label": "Poliv Ot Sok3 Do Perekreska",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok2_paradniy:4:switch.poliv_zony_ot_sok3_srednei_vozle_stseny",
+          "entityId": "switch.poliv_zony_ot_sok3_srednei_vozle_stseny",
+          "label": "Poliv Zony Ot Sok3 Srednei Vozle Stseny",
+          "durationMinutes": 10,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "sok2:4",
+      "name": "Sok2",
+      "enabled": true,
+      "startTime": "06:00",
+      "days": [
+        "mon",
+        "wed",
+        "fri"
+      ],
+      "zones": [
+        {
+          "id": "sok2:0:switch.poliv_vdol_bolshego_beseina_1_zona",
+          "entityId": "switch.poliv_vdol_bolshego_beseina_1_zona",
+          "label": "Poliv Vdol Bolshego Beseina 1 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok2:1:switch.poliv_vdol_malogo_kryla_terrasy_zona",
+          "entityId": "switch.poliv_vdol_malogo_kryla_terrasy_zona",
+          "label": "Poliv Vdol Malogo Kryla Terrasy Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok2:2:switch.poliv_naprotiv_letnei_kukhni_4_zona",
+          "entityId": "switch.poliv_naprotiv_letnei_kukhni_4_zona",
+          "label": "Poliv Naprotiv Letnei Kukhni 4 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok2:3:switch.poliv_naprotiv_parkovki_sok3_5_zona",
+          "entityId": "switch.poliv_naprotiv_parkovki_sok3_5_zona",
+          "label": "Poliv Naprotiv Parkovki Sok3 5 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok2:4:switch.poliv_mezhdu_letnei_kukhnei_i_elkoi_7_zona",
+          "entityId": "switch.poliv_mezhdu_letnei_kukhnei_i_elkoi_7_zona",
+          "label": "Poliv Mezhdu Letnei Kukhnei I Elkoi 7 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok2:5:switch.poliv_mezhdu_elkoi_i_sok3_8_zona",
+          "entityId": "switch.poliv_mezhdu_elkoi_i_sok3_8_zona",
+          "label": "Poliv Mezhdu Elkoi I Sok3 8 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok2:6:switch.poliv_vozle_bolshoi_besedki_9_zona",
+          "entityId": "switch.poliv_vozle_bolshoi_besedki_9_zona",
+          "label": "Poliv Vozle Bolshoi Besedki 9 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok2:7:switch.poliv_pered_kpp2_10_zona",
+          "entityId": "switch.poliv_pered_kpp2_10_zona",
+          "label": "Poliv Pered Kpp2 10 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok2:8:switch.poliv_vozle_detskoi_ploshchadki_11_zona",
+          "entityId": "switch.poliv_vozle_detskoi_ploshchadki_11_zona",
+          "label": "Poliv Vozle Detskoi Ploshchadki 11 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "sok2:9:switch.poliv_za_maloi_besedkoi_12_zona",
+          "entityId": "switch.poliv_za_maloi_besedkoi_12_zona",
+          "label": "Poliv Za Maloi Besedkoi 12 Zona",
+          "durationMinutes": 10,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "kpp2:5",
+      "name": "Kpp2",
+      "enabled": true,
+      "startTime": "06:00",
+      "days": [
+        "mon",
+        "wed",
+        "fri"
+      ],
+      "zones": [
+        {
+          "id": "kpp2:0:switch.poliv_kpp2_zona_1",
+          "entityId": "switch.poliv_kpp2_zona_1",
+          "label": "Poliv Kpp2 Zona 1",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "kpp2:1:switch.poliv_kpp2_zona_2",
+          "entityId": "switch.poliv_kpp2_zona_2",
+          "label": "Poliv Kpp2 Zona 2",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "kpp2:2:switch.poliv_kpp2_zona_3",
+          "entityId": "switch.poliv_kpp2_zona_3",
+          "label": "Poliv Kpp2 Zona 3",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "kpp2:3:switch.poliv_kpp2_zona_4",
+          "entityId": "switch.poliv_kpp2_zona_4",
+          "label": "Poliv Kpp2 Zona 4",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "kpp2:4:switch.poliv_kpp2_zona_5",
+          "entityId": "switch.poliv_kpp2_zona_5",
+          "label": "Poliv Kpp2 Zona 5",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "kpp2:5:switch.poliv_kpp2_zona_6",
+          "entityId": "switch.poliv_kpp2_zona_6",
+          "label": "Poliv Kpp2 Zona 6",
+          "durationMinutes": 10,
+          "enabled": true
+        },
+        {
+          "id": "kpp2:6:switch.poliv_kpp2_zona_7",
+          "entityId": "switch.poliv_kpp2_zona_7",
+          "label": "Poliv Kpp2 Zona 7",
+          "durationMinutes": 10,
+          "enabled": true
+        }
+      ]
+    }
+  ],
+  "updatedAt": "2026-04-08T06:26:27.967Z"
+}

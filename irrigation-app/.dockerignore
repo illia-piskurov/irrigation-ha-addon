@@ -1,0 +1,8 @@
+.git
+node_modules
+irrigation-app/node_modules
+irrigation-app/.svelte-kit
+irrigation-app/build
+irrigation-app/.output
+**/.DS_Store
+**/Thumbs.db
