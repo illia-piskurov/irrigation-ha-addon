@@ -181,18 +181,28 @@
                     </div>
                 {/if}
             </div>
-            <div class="program-header-end">
-                <ProgramHistoryDialog
-                    programId={program.id}
-                    programName={program.name}
-                    buttonClass="ghost compact icon-only"
-                    iconOnly={true}
-                    {zoneNameById}
-                    {zoneNameByEntityId}
-                />
-                <span class="caret">{expanded ? "▴" : "▾"}</span>
-            </div>
         </button>
+
+        <div class="program-header-end">
+            <ProgramHistoryDialog
+                programId={program.id}
+                programName={program.name}
+                buttonClass="ghost compact icon-only"
+                iconOnly={true}
+                {zoneNameById}
+                {zoneNameByEntityId}
+            />
+            <button
+                type="button"
+                class="program-expand-toggle"
+                onclick={onToggleExpanded}
+                aria-label={expanded
+                    ? "Свернуть программу"
+                    : "Развернуть программу"}
+            >
+                <span class="caret">{expanded ? "▴" : "▾"}</span>
+            </button>
+        </div>
     </div>
 
     {#if expanded}

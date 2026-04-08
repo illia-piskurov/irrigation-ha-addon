@@ -38,7 +38,7 @@
     let lastPersistedSignature = $state("");
     let saveDebounce: ReturnType<typeof setTimeout> | undefined;
     let haEntities = $state<Array<{ entityId: string; label: string }>>([]);
-    let haEntitiesLoaded = $state(false);
+    let hasStartedInitialLoad = false;
     let haEntitiesSource = $state("loading");
     let haConnectionStatus = $state<"checking" | "connected" | "error">(
         "checking",
@@ -81,11 +81,11 @@
     });
 
     $effect(() => {
-        if (!browser || haEntitiesLoaded) {
+        if (!browser || hasStartedInitialLoad) {
             return;
         }
 
-        haEntitiesLoaded = true;
+        hasStartedInitialLoad = true;
         void loadHaEntities();
         void loadRuntimeStatus();
 
