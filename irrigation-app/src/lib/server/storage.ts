@@ -81,6 +81,10 @@ export async function writeAppState(state: IrrigationAppState): Promise<Irrigati
         updatedAt: new Date().toISOString()
     });
 
+    return persistAppState(normalizedState);
+}
+
+async function persistAppState(normalizedState: IrrigationAppState): Promise<IrrigationAppState> {
     const dataSource = await getAppDataSource();
 
     await dataSource.transaction(async (manager) => {
@@ -220,7 +224,7 @@ async function bootstrapStateIfNeeded(): Promise<void> {
         updatedAt: new Date().toISOString()
     });
 
-    await writeAppState(initialState);
+    await persistAppState(initialState);
 }
 
 function toValueMap(rows: Array<SettingRecord | MetaRecord>): Record<string, string> {
