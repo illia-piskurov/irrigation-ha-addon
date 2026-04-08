@@ -237,6 +237,17 @@ textarea:focus {
     overflow: hidden;
 }
 
+.program-card-expanded {
+    overflow: visible;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.program-card-expanded .program-header {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
 .program-header {
     display: flex;
     justify-content: space-between;
@@ -269,7 +280,7 @@ textarea:focus {
 .program-header-end {
     display: inline-flex;
     align-items: center;
-    gap: 0.45rem;
+    gap: 0.55rem;
     flex: 0 0 auto;
 }
 
@@ -277,8 +288,11 @@ textarea:focus {
     border: 0;
     background: transparent;
     box-shadow: none;
-    min-height: 0;
+    min-height: 2.75rem;
+    min-width: 2.75rem;
     padding: 0;
+    display: inline-grid;
+    place-items: center;
 }
 
 .program-expand-toggle:hover,
@@ -393,12 +407,12 @@ textarea:focus {
 .caret {
     display: inline-grid;
     place-items: center;
-    width: 2rem;
-    height: 2rem;
+    width: 2.5rem;
+    height: 2.5rem;
     border-radius: 999px;
     background: rgba(86, 101, 111, 0.08);
     color: #4d5a65;
-    font-size: 1rem;
+    font-size: 1.08rem;
     font-weight: 700;
     line-height: 1;
 }
@@ -583,7 +597,12 @@ textarea:focus {
 }
 
 .entity-suggestions {
+    position: absolute;
     z-index: 1200;
+    top: calc(100% + 0.3rem);
+    left: 0;
+    right: 0;
+    max-width: min(400px, calc(100vw - 1.5rem));
     max-height: 240px;
     overflow-y: auto;
     overflow-x: hidden;
@@ -809,21 +828,21 @@ textarea:focus {
 }
 
 .compact {
-    min-height: 38px;
+    min-height: 44px;
     padding: 0.55rem 0.8rem;
     font-size: 0.8rem;
     box-shadow: none;
 }
 
 .icon-only {
-    width: 2rem;
-    min-width: 2rem;
-    min-height: 2rem;
-    height: 2rem;
+    width: 2.75rem;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    height: 2.75rem;
     padding: 0;
     display: inline-grid;
     place-items: center;
-    font-size: 0.95rem;
+    font-size: 1.08rem;
 }
 
 .visually-hidden {
@@ -1086,6 +1105,19 @@ textarea:focus {
     .zone-picker>* {
         flex: 1 1 0;
     }
+
+    .icon-only,
+    .program-expand-toggle {
+        width: 2.9rem;
+        min-width: 2.9rem;
+        min-height: 2.9rem;
+        height: 2.9rem;
+    }
+
+    .caret {
+        width: 2.65rem;
+        height: 2.65rem;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1177,6 +1209,20 @@ textarea:focus {
     .zone-row,
     .zone-main {
         gap: 0.65rem;
+    }
+
+    .icon-only,
+    .program-expand-toggle {
+        width: 3rem;
+        min-width: 3rem;
+        min-height: 3rem;
+        height: 3rem;
+    }
+
+    .caret {
+        width: 2.7rem;
+        height: 2.7rem;
+        font-size: 1.12rem;
     }
 
     .time-input-group {

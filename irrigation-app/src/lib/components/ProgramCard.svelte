@@ -150,7 +150,11 @@
     }
 </script>
 
-<section class="program-card" class:program-card-running={isProgramRunning}>
+<section
+    class="program-card"
+    class:program-card-running={isProgramRunning}
+    class:program-card-expanded={expanded}
+>
     <div class="program-header">
         <button
             class="program-header-main"
