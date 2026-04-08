@@ -16,15 +16,29 @@ interface HaEntityOption {
 }
 
 const DEFAULT_WS_URL = 'ws://supervisor/core/websocket';
+const ALT_WS_URL = 'ws://supervisor/core/api/websocket';
+const DEFAULT_STATES_URL = 'http://supervisor/core/api/states';
 const SUPPORTED_DOMAINS = new Set(['switch', 'valve', 'input_boolean']);
 
 export const GET: RequestHandler = async () => {
     try {
         const entities = await fetchEntitiesFromHomeAssistant();
         return json({ entities, source: 'websocket' });
-    } catch {
-        const entities = createSeedEntityFallback();
-        return json({ entities, source: 'seed-fallback' });
+    } catch (wsError) {
+        try {
+            const entities = await fetchEntitiesFromHomeAssistantHttp();
+            return json({ entities, source: 'homeassistant-api' });
+        } catch (httpError) {
+            const entities = createSeedEntityFallback();
+            return json({
+                entities,
+                source: 'seed-fallback',
+                errors: {
+                    websocket: stringifyError(wsError),
+                    homeassistantApi: stringifyError(httpError)
+                }
+            });
+        }
     }
 };
 
@@ -37,15 +51,30 @@ async function fetchEntitiesFromHomeAssistant(): Promise<HaEntityOption[]> {
         throw new Error('Home Assistant access token is not available');
     }
 
-    const wsUrl = process.env.HOMEASSISTANT_WS_URL ?? DEFAULT_WS_URL;
+    const wsUrls = process.env.HOMEASSISTANT_WS_URL
+        ? [process.env.HOMEASSISTANT_WS_URL]
+        : [DEFAULT_WS_URL, ALT_WS_URL];
 
+    let lastError: unknown;
+    for (const wsUrl of wsUrls) {
+        try {
+            return await fetchEntitiesFromSingleWsEndpoint(wsUrl, accessToken);
+        } catch (error) {
+            lastError = error;
+        }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error('No websocket endpoint responded');
+}
+
+function fetchEntitiesFromSingleWsEndpoint(wsUrl: string, accessToken: string): Promise<HaEntityOption[]> {
     return new Promise<HaEntityOption[]>((resolve, reject) => {
         const socket = new WebSocket(wsUrl);
         const requestId = 1;
 
         const timeout = setTimeout(() => {
             socket.close();
-            reject(new Error('Home Assistant websocket request timed out'));
+            reject(new Error(`Home Assistant websocket timed out: ${wsUrl}`));
         }, 4500);
 
         const cleanup = () => {
@@ -54,7 +83,7 @@ async function fetchEntitiesFromHomeAssistant(): Promise<HaEntityOption[]> {
 
         socket.addEventListener('error', () => {
             cleanup();
-            reject(new Error('Home Assistant websocket error'));
+            reject(new Error(`Home Assistant websocket error: ${wsUrl}`));
         });
 
         socket.addEventListener('message', (event) => {
@@ -77,7 +106,7 @@ async function fetchEntitiesFromHomeAssistant(): Promise<HaEntityOption[]> {
             if (message.type === 'auth_invalid') {
                 cleanup();
                 socket.close();
-                reject(new Error('Home Assistant websocket auth failed'));
+                reject(new Error(`Home Assistant websocket auth failed: ${wsUrl}`));
                 return;
             }
 
@@ -94,28 +123,57 @@ async function fetchEntitiesFromHomeAssistant(): Promise<HaEntityOption[]> {
             if (message.id === requestId && message.type === 'result') {
                 cleanup();
                 socket.close();
-
-                const entities = (message.result ?? [])
-                    .filter((state) => {
-                        const entityId = state.entity_id ?? '';
-                        const domain = entityId.split('.')[0] ?? '';
-                        return entityId.includes('.') && SUPPORTED_DOMAINS.has(domain);
-                    })
-                    .map((state) => {
-                        const entityId = state.entity_id ?? '';
-                        return {
-                            entityId,
-                            label:
-                                state.attributes?.friendly_name?.trim() ||
-                                humanizeIdentifier(entityId)
-                        } satisfies HaEntityOption;
-                    })
-                    .sort((left, right) => left.entityId.localeCompare(right.entityId));
-
-                resolve(entities);
+                resolve(mapStateItemsToEntities(message.result ?? []));
             }
         });
     });
+}
+
+async function fetchEntitiesFromHomeAssistantHttp(): Promise<HaEntityOption[]> {
+    const accessToken =
+        process.env.SUPERVISOR_TOKEN ??
+        process.env.HASSIO_TOKEN ??
+        process.env.HOME_ASSISTANT_TOKEN;
+    if (!accessToken) {
+        throw new Error('Home Assistant access token is not available');
+    }
+
+    const statesUrl = process.env.HOMEASSISTANT_STATES_URL ?? DEFAULT_STATES_URL;
+    const response = await fetch(statesUrl, {
+        headers: {
+            Authorization: `Bearer ${accessToken}`
+        }
+    });
+
+    if (!response.ok) {
+        throw new Error(`Home Assistant states API failed: ${response.status}`);
+    }
+
+    const states = (await response.json()) as HaStateItem[];
+    return mapStateItemsToEntities(states);
+}
+
+function mapStateItemsToEntities(states: HaStateItem[]): HaEntityOption[] {
+    return states
+        .filter((state) => {
+            const entityId = state.entity_id ?? '';
+            const domain = entityId.split('.')[0] ?? '';
+            return entityId.includes('.') && SUPPORTED_DOMAINS.has(domain);
+        })
+        .map((state) => {
+            const entityId = state.entity_id ?? '';
+            return {
+                entityId,
+                label:
+                    state.attributes?.friendly_name?.trim() ||
+                    humanizeIdentifier(entityId)
+            } satisfies HaEntityOption;
+        })
+        .sort((left, right) => left.entityId.localeCompare(right.entityId));
+}
+
+function stringifyError(error: unknown): string {
+    return error instanceof Error ? error.message : 'unknown error';
 }
 
 function createSeedEntityFallback(): HaEntityOption[] {

@@ -1,5 +1,5 @@
 name: "Irrigation Manager"
-version: "0.1.0"
+version: "0.1.1"
 slug: "irrigation_manager"
 description: "Simple Home Assistant irrigation program manager with sequential zone control"
 arch:

@@ -24,6 +24,8 @@
     let saveDebounce: ReturnType<typeof setTimeout> | undefined;
     let haEntities = $state<Array<{ entityId: string; label: string }>>([]);
     let haEntitiesLoaded = $state(false);
+    let haEntitiesSource = $state("loading");
+    let activeZoneAutocompleteId = $state("");
     const HOURS = Array.from({ length: 24 }, (_, value) =>
         value.toString().padStart(2, "0"),
     );
@@ -140,8 +142,71 @@
     ) {
         zone.entityId = value;
 
-        const matched = haEntities.find((entity) => entity.entityId === value);
+        const matched = collectEntityOptions().find(
+            (entity) => entity.entityId === value,
+        );
         zone.label = matched?.label || humanizeIdentifier(value);
+    }
+
+    function collectEntityOptions(): Array<{
+        entityId: string;
+        label: string;
+    }> {
+        const merged = new Map<string, string>();
+
+        for (const entity of haEntities) {
+            merged.set(entity.entityId, entity.label);
+        }
+
+        for (const program of draft.programs) {
+            for (const zone of program.zones) {
+                if (!zone.entityId) {
+                    continue;
+                }
+
+                if (!merged.has(zone.entityId)) {
+                    merged.set(
+                        zone.entityId,
+                        zone.label || humanizeIdentifier(zone.entityId),
+                    );
+                }
+            }
+        }
+
+        return Array.from(merged.entries())
+            .map(([entityId, label]) => ({ entityId, label }))
+            .sort((left, right) => left.entityId.localeCompare(right.entityId));
+    }
+
+    function getEntitySuggestions(zone: { entityId: string }) {
+        const query = zone.entityId.trim().toLowerCase();
+        const options = collectEntityOptions();
+
+        if (!query) {
+            return options.slice(0, 8);
+        }
+
+        return options
+            .filter(
+                (entity) =>
+                    entity.entityId.toLowerCase().includes(query) ||
+                    entity.label.toLowerCase().includes(query),
+            )
+            .slice(0, 12);
+    }
+
+    function selectEntitySuggestion(
+        zone: { entityId: string; label: string },
+        entityId: string,
+    ) {
+        updateZoneEntity(zone, entityId);
+        activeZoneAutocompleteId = "";
+    }
+
+    function closeAutocompleteDeferred() {
+        setTimeout(() => {
+            activeZoneAutocompleteId = "";
+        }, 120);
     }
 
     function updateStartTime(
@@ -208,9 +273,12 @@
 
             const payload = (await response.json()) as {
                 entities: Array<{ entityId: string; label: string }>;
+                source?: string;
             };
             haEntities = payload.entities;
+            haEntitiesSource = payload.source ?? "unknown";
         } catch {
+            haEntitiesSource = "seed-fallback";
             // Keep the form usable even if HA entity lookup is unavailable.
         }
     }
@@ -392,19 +460,60 @@
                                                     <span
                                                         >Сущность HA (entity_id)</span
                                                     >
-                                                    <input
-                                                        type="text"
-                                                        list="ha-entities-list"
-                                                        value={zone.entityId}
-                                                        placeholder="switch.poliv_..."
-                                                        oninput={(event) =>
-                                                            updateZoneEntity(
-                                                                zone,
-                                                                (
-                                                                    event.currentTarget as HTMLInputElement
-                                                                ).value,
-                                                            )}
-                                                    />
+                                                    <small class="entity-source"
+                                                        >Источник: {haEntitiesSource}</small
+                                                    >
+                                                    <div
+                                                        class="entity-autocomplete"
+                                                    >
+                                                        <input
+                                                            type="text"
+                                                            value={zone.entityId}
+                                                            placeholder="switch.poliv_..."
+                                                            onfocus={() =>
+                                                                (activeZoneAutocompleteId =
+                                                                    zone.id)}
+                                                            onblur={closeAutocompleteDeferred}
+                                                            oninput={(event) =>
+                                                                updateZoneEntity(
+                                                                    zone,
+                                                                    (
+                                                                        event.currentTarget as HTMLInputElement
+                                                                    ).value,
+                                                                )}
+                                                        />
+
+                                                        {#if activeZoneAutocompleteId === zone.id}
+                                                            {@const suggestions =
+                                                                getEntitySuggestions(
+                                                                    zone,
+                                                                )}
+                                                            {#if suggestions.length > 0}
+                                                                <div
+                                                                    class="entity-suggestions"
+                                                                >
+                                                                    {#each suggestions as suggestion}
+                                                                        <button
+                                                                            type="button"
+                                                                            class="entity-suggestion"
+                                                                            onmousedown={() =>
+                                                                                selectEntitySuggestion(
+                                                                                    zone,
+                                                                                    suggestion.entityId,
+                                                                                )}
+                                                                        >
+                                                                            <span
+                                                                                >{suggestion.label}</span
+                                                                            >
+                                                                            <small
+                                                                                >{suggestion.entityId}</small
+                                                                            >
+                                                                        </button>
+                                                                    {/each}
+                                                                </div>
+                                                            {/if}
+                                                        {/if}
+                                                    </div>
                                                 </label>
                                                 <label>
                                                     <span>Минуты</span>
@@ -467,14 +576,6 @@
                                         onclick={() => addZone(program)}
                                         >Добавить пустую зону</button
                                     >
-
-                                    <datalist id="ha-entities-list">
-                                        {#each haEntities as entity}
-                                            <option value={entity.entityId}
-                                                >{entity.label}</option
-                                            >
-                                        {/each}
-                                    </datalist>
                                 </div>
                             </div>
                         {/if}
