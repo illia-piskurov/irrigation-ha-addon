@@ -7,7 +7,8 @@ import {
     ZoneSchema,
     type ProgramEventRecord,
     type ProgramRunRecord,
-    type ProgramRunStatus
+    type ProgramRunStatus,
+    type ProgramRunTrigger
 } from './db/entities';
 import { turnSwitchOff, turnSwitchOn } from './ha-service';
 
@@ -56,6 +57,12 @@ export interface ProgramRuntimeSummary {
     activeZoneDurationMinutes: number | null;
     retryAt: string | null;
     lastError: string | null;
+}
+
+export interface RuntimeActionResult {
+    ok: boolean;
+    status: number;
+    error?: string;
 }
 
 export async function ensureRuntimeWorkersStarted(): Promise<void> {
@@ -166,6 +173,61 @@ export async function skipActiveZone(programId: string): Promise<boolean> {
     return true;
 }
 
+export async function startProgramNow(programId: string): Promise<RuntimeActionResult> {
+    const dataSource = await getAppDataSource();
+    const programRepository = dataSource.getRepository(ProgramSchema);
+
+    const program = await programRepository.findOneBy({ id: programId });
+    if (!program) {
+        return { ok: false, status: 404, error: 'Программа не найдена' };
+    }
+
+    if (await isProgramRunning(programId)) {
+        return { ok: false, status: 409, error: 'Программа уже выполняется или ожидает запуска' };
+    }
+
+    const queued = await enqueueManualRun(programId, 'manual-program');
+    if (!queued) {
+        return { ok: false, status: 409, error: 'Не удалось поставить запуск программы в очередь' };
+    }
+
+    return { ok: true, status: 200 };
+}
+
+export async function startZoneNow(programId: string, zoneId: string): Promise<RuntimeActionResult> {
+    const dataSource = await getAppDataSource();
+    const programRepository = dataSource.getRepository(ProgramSchema);
+    const zoneRepository = dataSource.getRepository(ZoneSchema);
+
+    const [program, zone] = await Promise.all([
+        programRepository.findOneBy({ id: programId }),
+        zoneRepository.findOneBy({ id: zoneId, programId })
+    ]);
+
+    if (!program) {
+        return { ok: false, status: 404, error: 'Программа не найдена' };
+    }
+
+    if (!zone) {
+        return { ok: false, status: 404, error: 'Зона не найдена' };
+    }
+
+    if (!zone.entityId.startsWith('switch.')) {
+        return { ok: false, status: 409, error: 'Для зоны требуется сущность формата switch.*' };
+    }
+
+    if (await isProgramRunning(programId)) {
+        return { ok: false, status: 409, error: 'Программа уже выполняется или ожидает запуска' };
+    }
+
+    const queued = await enqueueManualRun(programId, 'manual-zone', zone.id);
+    if (!queued) {
+        return { ok: false, status: 409, error: 'Не удалось поставить запуск зоны в очередь' };
+    }
+
+    return { ok: true, status: 200 };
+}
+
 async function schedulerTick(): Promise<void> {
     if (schedulerBusy) {
         return;
@@ -193,7 +255,7 @@ async function schedulerTick(): Promise<void> {
                 continue;
             }
 
-            await enqueueProgramRun(program.id, scheduledFor);
+            await enqueueProgramRun(program.id, scheduledFor, { triggerType: 'scheduled' });
         }
     } catch (error) {
         console.error('[Runtime] schedulerTick failed:', stringifyError(error));
@@ -202,14 +264,22 @@ async function schedulerTick(): Promise<void> {
     }
 }
 
-async function enqueueProgramRun(programId: string, scheduledFor: string): Promise<void> {
+async function enqueueProgramRun(
+    programId: string,
+    scheduledFor: string,
+    options: { triggerType?: ProgramRunTrigger; manualZoneId?: string | null } = {}
+): Promise<boolean> {
     const dataSource = await getAppDataSource();
     const runRepository = dataSource.getRepository(ProgramRunSchema);
+    const triggerType = options.triggerType ?? 'scheduled';
+    const manualZoneId = options.manualZoneId ?? null;
 
     const run: ProgramRunRecord = {
         id: createId(),
         programId,
         scheduledFor,
+        triggerType,
+        manualZoneId,
         status: 'pending',
         nextZoneIndex: 0,
         retryCount: 0,
@@ -225,16 +295,46 @@ async function enqueueProgramRun(programId: string, scheduledFor: string): Promi
 
     try {
         await runRepository.insert(run);
-        await writeProgramEvent('Program run queued', {
-            programId,
-            level: 'info',
-            payload: { scheduledFor }
-        });
+        await writeProgramEvent(
+            triggerType === 'manual-zone'
+                ? 'Manual zone run queued'
+                : triggerType === 'manual-program'
+                    ? 'Manual program run queued'
+                    : 'Program run queued',
+            {
+                programId,
+                level: 'info',
+                payload: { scheduledFor, triggerType, manualZoneId }
+            }
+        );
+        return true;
     } catch (error) {
         if (!isUniqueConstraintError(error)) {
             throw error;
         }
+
+        return false;
     }
+}
+
+async function enqueueManualRun(
+    programId: string,
+    triggerType: 'manual-program' | 'manual-zone',
+    manualZoneId: string | null = null,
+): Promise<boolean> {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        const scheduledFor = new Date(Date.now() + attempt).toISOString();
+        const inserted = await enqueueProgramRun(programId, scheduledFor, {
+            triggerType,
+            manualZoneId
+        });
+
+        if (inserted) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 async function executorTick(): Promise<void> {
@@ -318,6 +418,24 @@ async function findRunningProgramIds(): Promise<Set<string>> {
     return new Set(runningRuns.map((run) => run.programId));
 }
 
+async function isProgramRunning(programId: string): Promise<boolean> {
+    if (activeProgramExecutions.has(programId)) {
+        return true;
+    }
+
+    const dataSource = await getAppDataSource();
+    const runRepository = dataSource.getRepository(ProgramRunSchema);
+    const runningRun = await runRepository.findOne({
+        where: [
+            { programId, status: 'running' },
+            { programId, status: 'pending' }
+        ],
+        select: { id: true }
+    });
+
+    return Boolean(runningRun);
+}
+
 async function executeRun(runId: string): Promise<void> {
     const dataSource = await getAppDataSource();
     const runRepository = dataSource.getRepository(ProgramRunSchema);
@@ -329,6 +447,8 @@ async function executeRun(runId: string): Promise<void> {
         return;
     }
 
+    const triggerType = run.triggerType ?? 'scheduled';
+
     const nowIso = new Date().toISOString();
     run.status = 'running';
     run.startedAt = run.startedAt ?? nowIso;
@@ -336,22 +456,34 @@ async function executeRun(runId: string): Promise<void> {
     await runRepository.save(run);
 
     const program = await programRepository.findOneBy({ id: run.programId });
-    if (!program || !program.enabled) {
+    if (!program) {
         await finishRun(run, 'completed_with_errors', 'Program missing or disabled before execution');
         return;
     }
 
-    const zones = (await zoneRepository.find({
+    if (triggerType === 'scheduled' && !program.enabled) {
+        await finishRun(run, 'completed_with_errors', 'Program missing or disabled before execution');
+        return;
+    }
+
+    const allProgramZones = await zoneRepository.find({
         where: { programId: run.programId },
         order: { sortOrder: 'ASC' }
-    })).filter((zone) => zone.enabled && zone.entityId.startsWith('switch.'));
+    });
 
-    if (zones.length === 0 || run.nextZoneIndex >= zones.length) {
+    const zones =
+        triggerType === 'manual-zone'
+            ? allProgramZones.filter((zone) => zone.id === run.manualZoneId && zone.entityId.startsWith('switch.'))
+            : allProgramZones.filter((zone) => zone.enabled && zone.entityId.startsWith('switch.'));
+
+    const startIndex = triggerType === 'manual-zone' ? 0 : run.nextZoneIndex;
+
+    if (zones.length === 0 || startIndex >= zones.length) {
         await finishRun(run, run.hadErrors ? 'completed_with_errors' : 'completed');
         return;
     }
 
-    for (let index = run.nextZoneIndex; index < zones.length; index += 1) {
+    for (let index = startIndex; index < zones.length; index += 1) {
         const zone = zones[index];
         userSkippedRunIds.delete(run.id);
         run.nextZoneIndex = index;
@@ -559,6 +691,7 @@ async function executeZone(
 async function recoverStaleRuns(): Promise<void> {
     const dataSource = await getAppDataSource();
     const runRepository = dataSource.getRepository(ProgramRunSchema);
+    const zoneRepository = dataSource.getRepository(ZoneSchema);
 
     const staleRuns = await runRepository.find({ where: { status: 'running' } });
     if (staleRuns.length === 0) {
@@ -566,6 +699,9 @@ async function recoverStaleRuns(): Promise<void> {
     }
 
     for (const staleRun of staleRuns) {
+        const interruptedZoneId = staleRun.activeZoneId;
+        await reconcileStaleRunSwitch(staleRun.programId, interruptedZoneId, zoneRepository);
+
         activeZoneAbortControllers.delete(staleRun.id);
         activeZoneMetaByRunId.delete(staleRun.id);
         userSkippedRunIds.delete(staleRun.id);
@@ -586,6 +722,48 @@ async function recoverStaleRuns(): Promise<void> {
                 runId: staleRun.id,
                 nextZoneIndex: staleRun.nextZoneIndex,
                 scheduledFor: staleRun.scheduledFor
+            }
+        });
+    }
+}
+
+async function reconcileStaleRunSwitch(
+    programId: string,
+    interruptedZoneId: string | null,
+    zoneRepository: ReturnType<Awaited<ReturnType<typeof getAppDataSource>>['getRepository']>
+): Promise<void> {
+    if (!interruptedZoneId) {
+        return;
+    }
+
+    const interruptedZone = await zoneRepository.findOneBy({
+        id: interruptedZoneId,
+        programId
+    });
+
+    if (!interruptedZone || !interruptedZone.entityId.startsWith('switch.')) {
+        return;
+    }
+
+    try {
+        const result = await turnSwitchOff(interruptedZone.entityId);
+        await writeProgramEvent('Startup safety: stale zone switch turned off', {
+            programId,
+            level: 'warning',
+            payload: {
+                zoneId: interruptedZone.id,
+                entityId: interruptedZone.entityId,
+                state: result.state
+            }
+        });
+    } catch (error) {
+        await writeProgramEvent('Startup safety: failed to turn off stale zone switch', {
+            programId,
+            level: 'error',
+            payload: {
+                zoneId: interruptedZone.id,
+                entityId: interruptedZone.entityId,
+                error: stringifyError(error)
             }
         });
     }

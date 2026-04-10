@@ -45,7 +45,9 @@
         onToggleDay: (day: Weekday) => void;
         onUpdateStartTime: (part: "hour" | "minute", value: string) => void;
         onUpdateDefaultDurationMinutes: (value: number) => void;
+        startProgramAction: () => Promise<void>;
         onSkipActiveZone: () => Promise<void>;
+        startZoneAction: (zoneId: string) => Promise<void>;
         onUpdateZoneEntity: (
             zone: { entityId: string; label: string },
             value: string,
@@ -72,13 +74,17 @@
         onToggleDay,
         onUpdateStartTime,
         onUpdateDefaultDurationMinutes,
+        startProgramAction,
         onSkipActiveZone,
+        startZoneAction,
         onUpdateZoneEntity,
     }: Props = $props();
 
     let clockTickMs = $state(Date.now());
     let skipPending = $state(false);
     let skipError = $state("");
+    let startPending = $state(false);
+    let startError = $state("");
 
     const isProgramRunning = $derived(runtime?.status === "running");
     const activeZoneId = $derived(runtime?.activeZoneId ?? null);
@@ -148,6 +154,22 @@
             skipPending = false;
         }
     }
+
+    async function handleStartProgram() {
+        startError = "";
+        startPending = true;
+
+        try {
+            await startProgramAction();
+        } catch (error) {
+            startError =
+                error instanceof Error
+                    ? error.message
+                    : "Не удалось запустить программу";
+        } finally {
+            startPending = false;
+        }
+    }
 </script>
 
 <section
@@ -188,6 +210,16 @@
         </button>
 
         <div class="program-header-end">
+            <button
+                type="button"
+                class="secondary compact icon-only"
+                onclick={() => void handleStartProgram()}
+                disabled={startPending || isProgramRunning}
+                aria-label="Запустить программу"
+                title="Запустить программу"
+            >
+                ▶
+            </button>
             <ProgramHistoryDialog
                 programId={program.id}
                 programName={program.name}
@@ -233,6 +265,10 @@
                     Удалить
                 </button>
             </div>
+
+            {#if startError}
+                <p class="history-state history-error">{startError}</p>
+            {/if}
 
             {#if skipError}
                 <p class="history-state history-error">{skipError}</p>
@@ -319,6 +355,7 @@
                 {onAddZone}
                 {onRemoveZone}
                 {onMoveZone}
+                {startZoneAction}
                 {onUpdateZoneEntity}
             />
         </div>

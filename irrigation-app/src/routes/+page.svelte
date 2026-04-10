@@ -356,6 +356,51 @@
         await loadRuntimeStatus();
     }
 
+    async function requestStartProgram(programId: string) {
+        const response = await fetch(`${base}/api/runtime`, {
+            method: "POST",
+            headers: {
+                "content-type": "application/json",
+            },
+            body: JSON.stringify({
+                action: "start-program",
+                programId,
+            }),
+        });
+
+        if (!response.ok) {
+            const payload = (await response.json().catch(() => null)) as {
+                error?: string;
+            } | null;
+            throw new Error(payload?.error ?? "Не удалось запустить программу");
+        }
+
+        await loadRuntimeStatus();
+    }
+
+    async function requestStartZone(programId: string, zoneId: string) {
+        const response = await fetch(`${base}/api/runtime`, {
+            method: "POST",
+            headers: {
+                "content-type": "application/json",
+            },
+            body: JSON.stringify({
+                action: "start-zone",
+                programId,
+                zoneId,
+            }),
+        });
+
+        if (!response.ok) {
+            const payload = (await response.json().catch(() => null)) as {
+                error?: string;
+            } | null;
+            throw new Error(payload?.error ?? "Не удалось запустить зону");
+        }
+
+        await loadRuntimeStatus();
+    }
+
     function getProgramRuntimeText(programId: string): string {
         const runtime = runtimeByProgramId[programId];
 
@@ -375,7 +420,7 @@
         }
 
         const retryPart = runtime.retryAt
-            ? ` · retry ${new Date(runtime.retryAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+            ? ` · повтор в ${new Date(runtime.retryAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
             : "";
         return `Статус: в очереди${retryPart}`;
     }
@@ -441,7 +486,11 @@
                         onUpdateStartTime={(part, value) =>
                             updateStartTime(program, part, value)}
                         onUpdateDefaultDurationMinutes={updateDefaultDurationMinutes}
+                        startProgramAction={() =>
+                            requestStartProgram(program.id)}
                         onSkipActiveZone={() => requestSkipZone(program.id)}
+                        startZoneAction={(zoneId: string) =>
+                            requestStartZone(program.id, zoneId)}
                         onUpdateZoneEntity={(zone, value) =>
                             updateZoneEntity(zone, value)}
                     />

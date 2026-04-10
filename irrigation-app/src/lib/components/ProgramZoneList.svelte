@@ -17,6 +17,7 @@
         onAddZone: () => void;
         onRemoveZone: (zoneId: string) => void;
         onMoveZone: (zoneIndex: number, direction: -1 | 1) => void;
+        startZoneAction: (zoneId: string) => Promise<void>;
         onUpdateZoneEntity: (
             zone: { entityId: string; label: string },
             value: string,
@@ -33,8 +34,28 @@
         onAddZone,
         onRemoveZone,
         onMoveZone,
+        startZoneAction,
         onUpdateZoneEntity,
     }: Props = $props();
+
+    let startPendingZoneId = $state<string | null>(null);
+    let startError = $state("");
+
+    async function handleStartZone(zoneId: string) {
+        startError = "";
+        startPendingZoneId = zoneId;
+
+        try {
+            await startZoneAction(zoneId);
+        } catch (error) {
+            startError =
+                error instanceof Error
+                    ? error.message
+                    : "Не удалось запустить зону";
+        } finally {
+            startPendingZoneId = null;
+        }
+    }
 </script>
 
 <div class="zone-list">
@@ -99,6 +120,18 @@
             {/if}
 
             <div class="zone-actions">
+                <button
+                    type="button"
+                    class="secondary compact icon-only"
+                    onclick={() => void handleStartZone(zone.id)}
+                    disabled={isProgramRunning ||
+                        startPendingZoneId !== null ||
+                        !zone.entityId.startsWith("switch.")}
+                    aria-label="Запустить эту зону"
+                    title="Запустить эту зону"
+                >
+                    {startPendingZoneId === zone.id ? "…" : "▶"}
+                </button>
                 <label class="toggle">
                     <input type="checkbox" bind:checked={zone.enabled} />
                     <span>Вкл</span>
@@ -127,6 +160,10 @@
             </div>
         </div>
     {/each}
+
+    {#if startError}
+        <p class="history-state history-error">{startError}</p>
+    {/if}
 
     <button type="button" class="secondary" onclick={onAddZone}>
         Добавить пустую зону

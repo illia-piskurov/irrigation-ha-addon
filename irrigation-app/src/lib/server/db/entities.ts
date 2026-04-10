@@ -39,11 +39,14 @@ export interface ProgramEventRecord {
 }
 
 export type ProgramRunStatus = 'pending' | 'running' | 'completed' | 'completed_with_errors';
+export type ProgramRunTrigger = 'scheduled' | 'manual-program' | 'manual-zone';
 
 export interface ProgramRunRecord {
     id: string;
     programId: string;
     scheduledFor: string;
+    triggerType: ProgramRunTrigger;
+    manualZoneId: string | null;
     status: ProgramRunStatus;
     nextZoneIndex: number;
     retryCount: number;
@@ -132,6 +135,8 @@ export const ProgramRunSchema = new EntitySchema<ProgramRunRecord>({
         id: { type: String, primary: true },
         programId: { type: String },
         scheduledFor: { type: String },
+        triggerType: { type: String, default: 'scheduled' },
+        manualZoneId: { type: String, nullable: true },
         status: { type: String },
         nextZoneIndex: { type: Number },
         retryCount: { type: Number },
